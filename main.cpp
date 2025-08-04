@@ -13,11 +13,15 @@
 #include "camera.h"
 #include "shader.h"
 #include "stb_image.h"
+#include <vector>
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void processInput(GLFWwindow* window);
+
+// all cubes
+std::vector<glm::vec3> cubePositions;
 
 // basic cube vertices, can be scaled later
 float vertices[] = {
@@ -106,7 +110,18 @@ int main() {
     glfwSetScrollCallback(window, scroll_callback);
 
     // tell GLFW to capture our mouse
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    bool rightClickHeld = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS;
+    static bool wasHoldingRightClick = false;
+
+    if (rightClickHeld && !wasHoldingRightClick) {
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+        firstMouse = true; // reset for smooth movement when entering camera mode
+    }
+    else if (!rightClickHeld && wasHoldingRightClick) {
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+    }
+
+    wasHoldingRightClick = rightClickHeld;
 
     // glad: load all OpenGL function pointers
     // ---------------------------------------
@@ -168,21 +183,6 @@ int main() {
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        // Start ImGui frame
-        ImGui_ImplOpenGL3_NewFrame();
-        ImGui_ImplGlfw_NewFrame();
-        ImGui::NewFrame();
-
-        // Draw your ImGui GUI
-        ImGui::Begin("My Window");
-        ImGui::Text("Hello from ImGui!");
-        ImGui::End();
-
-        // Render ImGui
-        ImGui::Render();
-        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-
-
         // activate shader
         ourShader.use();
 
@@ -194,15 +194,32 @@ int main() {
         glm::mat4 view = camera.GetViewMatrix();
         ourShader.setMat4("view", view);
 
-        // bind vertex array
-        glBindVertexArray(VAO);
+        // Start ImGui frame
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
+        ImGui::NewFrame();
 
-        // draw single cube
-        glm::mat4 model = glm::mat4(1.0f); // make sure to initialize matrix to identity matrix first
-        ourShader.setMat4("model", model);
-        model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f));
+        // Draw your ImGui GUI
+        ImGui::SetNextWindowSize(ImVec2(200, 200)); // width = 400, height = 300
+        ImGui::Begin("My Window");
+        ImGui::Text("Hello from ImGui!");
+        if (ImGui::Button("Cube")) {
+            cubePositions.push_back(glm::vec3(0.0f, 0.0f, 0.0f));
+        }
+        ImGui::End();
 
-        glDrawArrays(GL_TRIANGLES, 0, 36);
+        for (const glm::vec3& pos : cubePositions) {
+            glm::mat4 model = glm::mat4(1.0f);
+            model = glm::translate(model, pos);
+            ourShader.setMat4("model", model);
+
+            glBindVertexArray(VAO);
+            glDrawArrays(GL_TRIANGLES, 0, 36);
+        }
+
+        // Render ImGui
+        ImGui::Render();
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
         // -------------------------------------------------------------------------------
@@ -257,24 +274,28 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 // -------------------------------------------------------
 void mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
 {
-    float xpos = static_cast<float>(xposIn);
-    float ypos = static_cast<float>(yposIn);
+    ImGuiIO& io = ImGui::GetIO();
+    if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS && !io.WantCaptureMouse) {
+        float xpos = static_cast<float>(xposIn);
+        float ypos = static_cast<float>(yposIn);
 
-    if (firstMouse)
-    {
+        if (firstMouse)
+        {
+            lastX = xpos;
+            lastY = ypos;
+            firstMouse = false;
+        }
+
+        float xoffset = xpos - lastX;
+        float yoffset = lastY - ypos;
+
         lastX = xpos;
         lastY = ypos;
-        firstMouse = false;
+
+        camera.ProcessMouseMovement(xoffset, yoffset);
     }
-
-    float xoffset = xpos - lastX;
-    float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
-
-    lastX = xpos;
-    lastY = ypos;
-
-    camera.ProcessMouseMovement(xoffset, yoffset);
 }
+
 
 // glfw: whenever the mouse scroll wheel scrolls, this callback is called
 // ----------------------------------------------------------------------
