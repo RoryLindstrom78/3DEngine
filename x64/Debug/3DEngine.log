@@ -1,2 +1,10 @@
-﻿  main.cpp
+﻿  imgui.cpp
+  imgui_demo.cpp
+  imgui_draw.cpp
+  imgui_impl_glfw.cpp
+  imgui_impl_opengl3.cpp
+  imgui_tables.cpp
+  imgui_widgets.cpp
+  main.cpp
+  Generating Code...
   3DEngine.vcxproj -> C:\Users\HACKSHIT\source\repos\3DEngine\x64\Debug\3DEngine.exe
