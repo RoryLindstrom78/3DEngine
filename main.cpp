@@ -15,59 +15,17 @@
 #include "stb_image.h"
 #include <vector>
 #include "Objects.h"
+#include "Scene.h"
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void processInput(GLFWwindow* window);
 
-// all cubes
-std::vector<Cube> cubes;
+// Scene object
+Scene scene;
 
 // basic cube vertices, can be scaled later
-float vertices[] = {
-        -0.5f, -0.5f, -0.5f,
-         0.5f, -0.5f, -0.5f,
-         0.5f,  0.5f, -0.5f,
-         0.5f,  0.5f, -0.5f,
-        -0.5f,  0.5f, -0.5f,
-        -0.5f, -0.5f, -0.5f,
-
-        -0.5f, -0.5f,  0.5f,
-         0.5f, -0.5f,  0.5f, 
-         0.5f,  0.5f,  0.5f,
-         0.5f,  0.5f,  0.5f,
-        -0.5f,  0.5f,  0.5f,
-        -0.5f, -0.5f,  0.5f,
-
-        -0.5f,  0.5f,  0.5f,
-        -0.5f,  0.5f, -0.5f,
-        -0.5f, -0.5f, -0.5f,
-        -0.5f, -0.5f, -0.5f,
-        -0.5f, -0.5f,  0.5f,
-        -0.5f,  0.5f,  0.5f,
-
-         0.5f,  0.5f,  0.5f,
-         0.5f,  0.5f, -0.5f,
-         0.5f, -0.5f, -0.5f,
-         0.5f, -0.5f, -0.5f,
-         0.5f, -0.5f,  0.5f,
-         0.5f,  0.5f,  0.5f,
-
-        -0.5f, -0.5f, -0.5f,
-         0.5f, -0.5f, -0.5f,
-         0.5f, -0.5f,  0.5f,
-         0.5f, -0.5f,  0.5f,
-        -0.5f, -0.5f,  0.5f,
-        -0.5f, -0.5f, -0.5f,
-
-        -0.5f,  0.5f, -0.5f,
-         0.5f,  0.5f, -0.5f,
-         0.5f,  0.5f,  0.5f,
-         0.5f,  0.5f,  0.5f,
-        -0.5f,  0.5f,  0.5f,
-        -0.5f,  0.5f, -0.5f
-};
 
 // settings
 const unsigned int SCR_WIDTH = 800;
@@ -154,20 +112,6 @@ int main() {
     // -------------------------
     Shader ourShader("Vertex.vs", "Fragment.fs");
 
-
-    //unsigned int VBO, VAO;
-    //glGenVertexArrays(1, &VAO);
-    //glGenBuffers(1, &VBO);
-
-    //glBindVertexArray(VAO);
-
-    //glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    //glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-    //// position attribute
-    //glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-    //glEnableVertexAttribArray(0);
-
     while (!glfwWindowShouldClose(window)) {
         // per-frame time logic
         // --------------------
@@ -205,13 +149,11 @@ int main() {
         ImGui::Begin("My Window");
         ImGui::Text("Hello from ImGui!");
         if (ImGui::Button("Cube")) {
-            cubes.push_back(Cube(ourShader));
+            scene.addObj(new Cube(ourShader));
         }
         ImGui::End();
 
-        for (const Cube& cube : cubes) {
-            cube.draw();
-        }
+        scene.draw();
 
         // Render ImGui
         ImGui::Render();
