@@ -1,2 +1,4 @@
 ﻿  main.cpp
+C:\Users\HACKSHIT\source\repos\3DEngine\3DEngine\main.cpp(199,81): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
+C:\Users\HACKSHIT\source\repos\3DEngine\3DEngine\main.cpp(199,71): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
   3DEngine.vcxproj -> C:\Users\HACKSHIT\source\repos\3DEngine\x64\Debug\3DEngine.exe

@@ -9,6 +9,53 @@
 
 #include "shader.h"
 
+// Ray intersection function
+bool rayIntersectsAABB(const glm::vec3& rayOrigin, const glm::vec3& rayDir, const glm::vec3& boxMin, const glm::vec3& boxMax, float& t) // output: distance along ray to intersection
+{
+    float tmin = (boxMin.x - rayOrigin.x) / rayDir.x;
+    float tmax = (boxMax.x - rayOrigin.x) / rayDir.x;
+
+    if (tmin > tmax) std::swap(tmin, tmax);
+
+    float tymin = (boxMin.y - rayOrigin.y) / rayDir.y;
+    float tymax = (boxMax.y - rayOrigin.y) / rayDir.y;
+
+    if (tymin > tymax) std::swap(tymin, tymax);
+
+    if ((tmin > tymax) || (tymin > tmax))
+        return false;
+
+    if (tymin > tmin)
+        tmin = tymin;
+
+    if (tymax < tmax)
+        tmax = tymax;
+
+    float tzmin = (boxMin.z - rayOrigin.z) / rayDir.z;
+    float tzmax = (boxMax.z - rayOrigin.z) / rayDir.z;
+
+    if (tzmin > tzmax) std::swap(tzmin, tzmax);
+
+    if ((tmin > tzmax) || (tzmin > tmax))
+        return false;
+
+    if (tzmin > tmin)
+        tmin = tzmin;
+
+    if (tzmax < tmax)
+        tmax = tzmax;
+
+    t = tmin;
+
+    if (t < 0) {
+        t = tmax;
+        if (t < 0)
+            return false;
+    }
+
+    return true;
+}
+
 // Cube vertex data
 static float cubeVertices[] = {
     -0.5f, -0.5f, -0.5f,
@@ -69,6 +116,7 @@ public:
 
     virtual ~Object() = default;
     virtual void draw() const = 0;
+    virtual bool intersectsRay(const glm::vec3& rayOrigin, const glm::vec3& rayDir, float& distance) const = 0;
 };
 
 // Cube class with shared VAO/VBO
@@ -106,6 +154,12 @@ public:
             glDeleteBuffers(1, &sharedVBO);
             initialized = false;
         }
+    }
+
+    bool intersectsRay(const glm::vec3& rayOrigin, const glm::vec3& rayDir, float& distance) const override {
+        glm::vec3 boxMin = position - size * 0.5f;
+        glm::vec3 boxMax = position + size * 0.5f;
+        return rayIntersectsAABB(rayOrigin, rayDir, boxMin, boxMax, distance);
     }
 
 private:

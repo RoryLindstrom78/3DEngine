@@ -20,7 +20,8 @@
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
-void processInput(GLFWwindow* window);
+void processInput(GLFWwindow* window, Scene &scene);
+glm::vec3 getRayFromMouse(float mouseX, float mouseY, float screenWidth, float screenHeight, Camera& camera);
 
 // Scene object
 Scene scene;
@@ -121,7 +122,7 @@ int main() {
 
         // input
         // -----
-        processInput(window);
+        processInput(window, scene);
 
         // render
         // ------
@@ -179,11 +180,24 @@ int main() {
 
 // process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly
 // ---------------------------------------------------------------------------------------------------------
-void processInput(GLFWwindow* window)
+void processInput(GLFWwindow* window, Scene &scene)
 {
+    ImGuiIO& io = ImGui::GetIO();
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
+    if (glfwGetKey(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS && !io.WantCaptureMouse) { // fix this doesn't detect left click
+        // Get cursor position
+        double mouseX, mouseY;
+        glfwGetCursorPos(window, &mouseX, &mouseY);
 
+        // Get window size
+        int winWidth, winHeight;
+        glfwGetWindowSize(window, &winWidth, &winHeight);
+        
+        // Get ray cast from camera to mouse coordinates
+        glm::vec3 ray = getRayFromMouse((float)mouseX, (float)mouseY, winWidth, winHeight, camera);
+        scene.selectObjectFromRay(camera.Position, ray);
+    }
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
         camera.ProcessKeyboard(FORWARD, deltaTime);
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
@@ -235,4 +249,29 @@ void mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
     camera.ProcessMouseScroll(static_cast<float>(yoffset));
+}
+
+glm::vec3 getRayFromMouse(
+    float mouseX, float mouseY,
+    float screenWidth, float screenHeight,
+    Camera& camera)
+{
+    // Convert to NDC
+    float x = (2.0f * mouseX) / screenWidth - 1.0f;
+    float y = 1.0f - (2.0f * mouseY) / screenHeight; // Note: y is flipped
+    glm::vec4 rayClip = glm::vec4(x, y, -1.0f, 1.0f);
+
+    // Projection and View matrices
+    glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), screenWidth / screenHeight, 0.1f, 100.0f);
+    glm::mat4 view = camera.GetViewMatrix();
+
+    // Convert to eye space
+    glm::vec4 rayEye = glm::inverse(projection) * rayClip;
+    rayEye = glm::vec4(rayEye.x, rayEye.y, -1.0f, 0.0f);
+
+    // Convert to world space
+    glm::vec4 rayWorld = glm::inverse(view) * rayEye;
+    glm::vec3 rayDir = glm::normalize(glm::vec3(rayWorld));
+
+    return rayDir; // ray origin is camera.Position
 }
