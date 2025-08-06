@@ -31,7 +31,10 @@ public:
 		}
 
 		selectedObject = closestObject;
-		if (!selectedObject->isSelected()) selectedObject->toggleSelected();
+		if (selectedObject) {
+			if (!selectedObject->isSelected()) selectedObject->toggleSelected();
+		}
+
 
 		if (selectedObject != nullptr) {
 			std::cout << "selected" << std::endl;
