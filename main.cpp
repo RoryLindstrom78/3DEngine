@@ -203,7 +203,7 @@ void processInput(GLFWwindow* window, Scene &scene)
         scene.selectObjectFromRay(camera.Position, ray);
     }
 
-    leftMousePressedLastFrame == leftMousePressed;
+    leftMousePressedLastFrame = leftMousePressed;
 
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
         camera.ProcessKeyboard(FORWARD, deltaTime);
