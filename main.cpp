@@ -182,10 +182,14 @@ int main() {
 // ---------------------------------------------------------------------------------------------------------
 void processInput(GLFWwindow* window, Scene &scene)
 {
+    static bool leftMousePressedLastFrame = false;
     ImGuiIO& io = ImGui::GetIO();
+
+    bool leftMousePressed = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS;
+
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
-    if (glfwGetKey(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS && !io.WantCaptureMouse) { // fix this doesn't detect left click
+    if (leftMousePressed && !leftMousePressedLastFrame && !io.WantCaptureMouse) { // fix this doesn't detect left click
         // Get cursor position
         double mouseX, mouseY;
         glfwGetCursorPos(window, &mouseX, &mouseY);
@@ -198,6 +202,9 @@ void processInput(GLFWwindow* window, Scene &scene)
         glm::vec3 ray = getRayFromMouse((float)mouseX, (float)mouseY, winWidth, winHeight, camera);
         scene.selectObjectFromRay(camera.Position, ray);
     }
+
+    leftMousePressedLastFrame == leftMousePressed;
+
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
         camera.ProcessKeyboard(FORWARD, deltaTime);
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
