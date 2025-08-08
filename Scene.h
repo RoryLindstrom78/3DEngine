@@ -17,6 +17,12 @@ public:
 	}
 
 	void selectObjectFromRay(const glm::vec3 &rayOrigin, const glm::vec3 &rayDir) {
+		
+		// if an object is already selected we want to first check if we're clicking the object's move arrows
+		if (selectedObject) {
+			selectLineFromRay(rayOrigin, rayDir);
+		}
+		
 		float closestDistance = std::numeric_limits<float>::max();
 		Object* closestObject = nullptr;
 
@@ -42,5 +48,9 @@ public:
 		else {
 			std::cout << "failed" << std::endl;
 		}
+	}
+
+	void selectLineFromRay(const glm::vec3& rayOrigin, const glm::vec3& rayDir) {
+		std::cout << "code this here" << std::endl;
 	}
 };
