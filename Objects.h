@@ -56,6 +56,23 @@ bool rayIntersectsAABB(const glm::vec3& rayOrigin, const glm::vec3& rayDir, cons
     return true;
 }
 
+// normal vectors
+static float cubeNormals[] = {
+    // front normal (z = +0.5)
+    0.0f, 0.0f,  0.5f,  0.0f, 0.0f,  1.0f,
+    // back normal (z = -0.5)
+    0.0f, 0.0f, -0.5f,  0.0f, 0.0f, -1.0f,
+    // right normal (x = +0.5)
+    0.5f, 0.0f,  0.0f,  1.0f, 0.0f,  0.0f,
+    // left normal (x = -0.5)
+   -0.5f, 0.0f,  0.0f, -1.0f, 0.0f,  0.0f,
+   // top normal (y = +0.5)
+   0.0f, 0.5f,  0.0f,  0.0f, 1.0f,  0.0f,
+   // bottom normal (y = -0.5)
+   0.0f, -0.5f, 0.0f,  0.0f, -1.0f, 0.0f
+};
+
+
 // Cube vertex data
 static float cubeVertices[] = {
     -0.5f, -0.5f, -0.5f,
@@ -184,6 +201,25 @@ public:
             glBindVertexArray(edgeVAO);
             glDrawArrays(GL_LINES, 0, 24);
             glBindVertexArray(0);
+
+            // draw transform lines
+            shader.setMat4("model", glm::mat4(1.0f)); // or your transform
+            glLineWidth(4.0f);
+            glBindVertexArray(normalVAO);
+
+            // Set color red for X axis lines
+            shader.setVec4("inColor", glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
+            glDrawArrays(GL_LINES, 0, 4);
+
+            // Set color green for Y axis lines
+            shader.setVec4("inColor", glm::vec4(0.0f, 1.0f, 0.0f, 1.0f));
+            glDrawArrays(GL_LINES, 4, 4);
+
+            // Set color blue for Z axis lines
+            shader.setVec4("inColor", glm::vec4(0.0f, 0.0f, 1.0f, 1.0f));
+            glDrawArrays(GL_LINES, 8, 4);
+
+            glBindVertexArray(0);
         }
     }
 
@@ -206,6 +242,8 @@ public:
 private:
     static GLuint edgeVAO;
     static GLuint edgeVBO;
+    static GLuint normalVAO;
+    static GLuint normalVBO;
     static unsigned int sharedVAO;
     static unsigned int sharedVBO;
     static bool initialized;
@@ -240,6 +278,20 @@ private:
 
         glBindVertexArray(0);
 
+
+        // Normal VAO and VBO
+        glGenVertexArrays(1, &normalVAO);
+        glGenBuffers(1, &normalVBO);
+
+        glBindVertexArray(normalVAO);
+        glBindBuffer(GL_ARRAY_BUFFER, normalVBO);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(cubeNormals), cubeNormals, GL_STATIC_DRAW);
+
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+        glEnableVertexAttribArray(0);
+        
+        glBindVertexArray(0);
+
         initialized = true;
     }
 };
@@ -247,6 +299,8 @@ private:
 // Static member definitions
 GLuint Cube::edgeVAO = 0;
 GLuint Cube::edgeVBO = 0;
+GLuint Cube::normalVAO = 0;
+GLuint Cube::normalVBO = 0;
 unsigned int Cube::sharedVAO = 0;
 unsigned int Cube::sharedVBO = 0;
 bool Cube::initialized = false;
