@@ -68,12 +68,18 @@
     <ClInclude Include="Scene.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="ColorPicker.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Vertex.vs">
       <Filter>shaders</Filter>
     </None>
     <None Include="Fragment.fs">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="ColorPickerFrag.fs">
       <Filter>shaders</Filter>
     </None>
   </ItemGroup>

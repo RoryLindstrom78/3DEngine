@@ -16,11 +16,12 @@
 #include <vector>
 #include "Objects.h"
 #include "Scene.h"
+#include "ColorPicker.h"
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
-void processInput(GLFWwindow* window, Scene &scene);
+void processInput(GLFWwindow* window, Scene &scene, ColorPicker& colorPicker);
 glm::vec3 getRayFromMouse(float mouseX, float mouseY, float screenWidth, float screenHeight, Camera& camera);
 
 // Scene object
@@ -113,6 +114,10 @@ int main() {
     // -------------------------
     Shader ourShader("Vertex.vs", "Fragment.fs");
 
+    // Color picker FBO
+    Shader colorPickShader("Vertex.vs", "ColorPickerFrag.fs");
+    ColorPicker colorPicker(scene, colorPickShader, camera);
+
     while (!glfwWindowShouldClose(window)) {
         // per-frame time logic
         // --------------------
@@ -120,9 +125,12 @@ int main() {
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
 
+        // Render picking pass
+        colorPicker.renderPickingPass();
+
         // input
         // -----
-        processInput(window, scene);
+        processInput(window, scene, colorPicker);
 
         // render
         // ------
@@ -150,11 +158,11 @@ int main() {
         ImGui::Begin("My Window");
         ImGui::Text("Hello from ImGui!");
         if (ImGui::Button("Cube")) {
-            scene.addObj(new Cube(ourShader));
+            scene.addObj(new Cube());
         }
         ImGui::End();
 
-        scene.draw();
+        scene.draw(ourShader);
 
         // Render ImGui
         ImGui::Render();
@@ -180,7 +188,7 @@ int main() {
 
 // process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly
 // ---------------------------------------------------------------------------------------------------------
-void processInput(GLFWwindow* window, Scene &scene)
+void processInput(GLFWwindow* window, Scene& scene, ColorPicker& colorPicker)
 {
     static bool leftMousePressedLastFrame = false;
     ImGuiIO& io = ImGui::GetIO();
@@ -198,9 +206,16 @@ void processInput(GLFWwindow* window, Scene &scene)
         int winWidth, winHeight;
         glfwGetWindowSize(window, &winWidth, &winHeight);
         
-        // Get ray cast from camera to mouse coordinates
-        glm::vec3 ray = getRayFromMouse((float)mouseX, (float)mouseY, winWidth, winHeight, camera);
-        scene.selectObjectFromRay(camera.Position, ray);
+        glFlush();
+        int id = colorPicker.getObjectIDAtPixel((int)mouseX, (int)mouseY, winHeight);
+        if (id != -1) {
+            int index = id - 1; // for indexing
+            Object* obj = scene.getObjs()[index];
+            if (!obj->isSelected()) obj->toggleSelected();
+        }
+        //// Get ray cast from camera to mouse coordinates
+        //glm::vec3 ray = getRayFromMouse((float)mouseX, (float)mouseY, winWidth, winHeight, camera);
+        //scene.selectObjectFromRay(camera.Position, ray);
     }
 
     leftMousePressedLastFrame = leftMousePressed;

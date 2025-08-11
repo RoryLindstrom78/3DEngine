@@ -146,12 +146,14 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="camera.h" />
+    <ClInclude Include="ColorPicker.h" />
     <ClInclude Include="Objects.h" />
     <ClInclude Include="Scene.h" />
     <ClInclude Include="shader.h" />
     <ClInclude Include="stb_image.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="ColorPickerFrag.fs" />
     <None Include="Fragment.fs" />
     <None Include="Vertex.vs" />
   </ItemGroup>

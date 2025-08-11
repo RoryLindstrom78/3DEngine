@@ -1,3 +1,4 @@
+#pragma once
 #include <vector>
 #include "shader.h"
 #include "Objects.h"
@@ -5,14 +6,20 @@
 
 class Scene {
 private:
-	std::vector<Object*> objs;
 	Object* selectedObject = nullptr;
+	int numObjects = 0;
+	std::vector<Object*> objs;
 public:
-	void addObj(Object *obj) { objs.push_back(obj); }
+	void addObj(Object *obj) { 
+		objs.push_back(obj); 
+		obj->ID = ++numObjects;
+	}
 
-	void draw() {
+	std::vector<Object*> getObjs() { return objs; }
+
+	void draw(Shader& shader) {
 		for (const Object* obj : objs) {
-			obj->draw();
+			obj->draw(shader);
 		}
 	}
 
