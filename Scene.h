@@ -4,6 +4,14 @@
 #include "Objects.h"
 #include <iostream>
 
+enum class MoveAxis { None, X, Y, Z };
+
+struct GizmoState {
+	bool isMoving = false;
+	MoveAxis ActiveAxis = MoveAxis::None;
+	glm::vec3 initialClickPos;
+};
+
 class Scene {
 private:
 	Object* selectedObject = nullptr;
@@ -17,10 +25,16 @@ public:
 
 	std::vector<Object*> getObjs() { return objs; }
 
+	Object* getSelectedObj() { return selectedObject; }
+
 	void draw(Shader& shader) {
 		for (const Object* obj : objs) {
 			obj->draw(shader);
 		}
+	}
+
+	void selectObject(Object* obj) {
+		selectedObject = obj;
 	}
 
 	void selectObjectFromRay(const glm::vec3 &rayOrigin, const glm::vec3 &rayDir) {

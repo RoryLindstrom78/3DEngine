@@ -22,8 +22,11 @@
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
-void processInput(GLFWwindow* window, Scene &scene, ColorPicker& colorPicker);
-glm::vec3 getRayFromMouse(float mouseX, float mouseY, float screenWidth, float screenHeight, Camera& camera);
+void processInput(GLFWwindow* window, Scene &scene, ColorPicker& colorPicker, GizmoState& gizmo);
+void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
+
+
+glm::vec3 getMouseWorldPosition(GLFWwindow* window);
 
 // Scene object
 Scene scene;
@@ -40,10 +43,16 @@ bool firstMouse = true;
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 
+// Gizmo State Manager
+GizmoState gizmo;
+
+// Global pointer to color picker object
+ColorPicker* colorPickPoint;
+
 
 int main() {
     // glfw: initialize and configure
-// ------------------------------
+    // ------------------------------
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -66,20 +75,22 @@ int main() {
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
     glfwSetCursorPosCallback(window, mouse_callback);
     glfwSetScrollCallback(window, scroll_callback);
+    glfwSetMouseButtonCallback(window, mouse_button_callback);
+
 
     // tell GLFW to capture our mouse
-    bool rightClickHeld = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS;
-    static bool wasHoldingRightClick = false;
+    //bool rightClickHeld = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS;
+    //static bool wasHoldingRightClick = false;
 
-    if (rightClickHeld && !wasHoldingRightClick) {
-        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-        firstMouse = true; // reset for smooth movement when entering camera mode
-    }
-    else if (!rightClickHeld && wasHoldingRightClick) {
-        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-    }
+    //if (rightClickHeld && !wasHoldingRightClick) {
+    //    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    //    firstMouse = true; // reset for smooth movement when entering camera mode
+    //}
+    //else if (!rightClickHeld && wasHoldingRightClick) {
+    //    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+    //}
 
-    wasHoldingRightClick = rightClickHeld;
+    //wasHoldingRightClick = rightClickHeld;
 
     // glad: load all OpenGL function pointers
     // ---------------------------------------
@@ -114,6 +125,7 @@ int main() {
     // Color picker FBO
     Shader colorPickShader("Vertex.vs", "ColorPickerFrag.fs");
     ColorPicker colorPicker(scene, colorPickShader, camera);
+    colorPickPoint = &colorPicker; // for scope purposes
 
     while (!glfwWindowShouldClose(window)) {
         // per-frame time logic
@@ -122,12 +134,14 @@ int main() {
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
 
-        // Render picking pass
-        colorPicker.renderPickingPass();
 
         // input
         // -----
-        processInput(window, scene, colorPicker);
+        processInput(window, scene, colorPicker, gizmo);
+
+        // Render picking pass
+        colorPicker.renderPickingPass();
+
 
         // render
         // ------
@@ -185,54 +199,10 @@ int main() {
 
 // process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly
 // ---------------------------------------------------------------------------------------------------------
-void processInput(GLFWwindow* window, Scene& scene, ColorPicker& colorPicker)
+void processInput(GLFWwindow* window, Scene& scene, ColorPicker& colorPicker, GizmoState& gizmo)
 {
-    static bool leftMousePressedLastFrame = false;
-    ImGuiIO& io = ImGui::GetIO();
-
-    bool leftMousePressed = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS;
-
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
-    if (leftMousePressed && !leftMousePressedLastFrame && !io.WantCaptureMouse) { // fix this doesn't detect left click
-        // Get cursor position
-        double mouseX, mouseY;
-        glfwGetCursorPos(window, &mouseX, &mouseY);
-
-        // Get window size
-        int winWidth, winHeight;
-        glfwGetWindowSize(window, &winWidth, &winHeight);
-        
-        glFlush();
-        int id = colorPicker.getObjectIDAtPixel((int)mouseX, (int)mouseY, winHeight);
-        std::cout << id << std::endl;
-        if (id != -1) {
-            if (id == GIZMO_RED_ID) {
-                std::cout << "red" << std::endl;
-            }
-            else if (id == GIZMO_GREEN_ID) {
-                std::cout << "green" << std::endl;
-            }
-            else if (id == GIZMO_BLUE_ID) {
-                std::cout << "blue" << std::endl;
-            }
-            else {
-                int index = id - 1; // for indexing
-                Object* obj = scene.getObjs()[index];
-                if (!obj->isSelected()) obj->toggleSelected();
-            }
-        }
-        //// Get ray cast from camera to mouse coordinates
-        //glm::vec3 ray = getRayFromMouse((float)mouseX, (float)mouseY, winWidth, winHeight, camera);
-        //scene.selectObjectFromRay(camera.Position, ray);
-
-    }
-    if (leftMousePressed && !io.WantCaptureMouse) {
-        std::cout << "WEE" << std::endl;
-    }
-
-    leftMousePressedLastFrame = leftMousePressed;
-
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
         camera.ProcessKeyboard(FORWARD, deltaTime);
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
@@ -256,8 +226,32 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 // -------------------------------------------------------
 void mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
 {
+    static bool leftMousePressedLastFrame = false;
     ImGuiIO& io = ImGui::GetIO();
-    if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS && !io.WantCaptureMouse) {
+    bool leftMousePressedNow = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS;
+    if (leftMousePressedNow && leftMousePressedLastFrame && !io.WantCaptureMouse) {
+        if (gizmo.isMoving) {
+            glm::vec3 currentMousePos = getMouseWorldPosition(window);
+            glm::vec3 delta = currentMousePos - gizmo.initialClickPos;
+
+            switch (gizmo.ActiveAxis) {
+            case MoveAxis::X:
+                scene.getSelectedObj()->position.x += delta.x;
+                break;
+            case MoveAxis::Y:
+                scene.getSelectedObj()->position.y += delta.y;
+                break;
+            case MoveAxis::Z:
+                scene.getSelectedObj()->position.z += delta.z;
+                break;
+            default:
+                break;
+            }
+
+            gizmo.initialClickPos = currentMousePos;
+        }
+    }
+    else if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS && !io.WantCaptureMouse) {
         float xpos = static_cast<float>(xposIn);
         float ypos = static_cast<float>(yposIn);
 
@@ -276,7 +270,66 @@ void mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
 
         camera.ProcessMouseMovement(xoffset, yoffset);
     }
+
+    leftMousePressedLastFrame = leftMousePressedNow;
 }
+
+void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
+{
+    ImGuiIO& io = ImGui::GetIO();
+
+    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS && !io.WantCaptureMouse) {
+        // Get cursor position
+        double mouseX, mouseY;
+        glfwGetCursorPos(window, &mouseX, &mouseY);
+
+        int winWidth, winHeight;
+        glfwGetWindowSize(window, &winWidth, &winHeight);
+
+        int id = colorPickPoint->getObjectIDAtPixel((int)mouseX, (int)mouseY, winHeight);
+
+        if (id != -1) {
+            if (id == GIZMO_RED_ID) {
+                Object* sel = scene.getSelectedObj();
+                if (sel != nullptr) {
+                    gizmo.isMoving = true;
+                    gizmo.ActiveAxis = MoveAxis::Z;
+                    gizmo.initialClickPos = getMouseWorldPosition(window);
+                }
+            }
+            else if (id == GIZMO_GREEN_ID) {
+                Object* sel = scene.getSelectedObj();
+                if (sel != nullptr) {
+                    std::cout << "GREEN" << std::endl;
+                    gizmo.isMoving = true;
+                    gizmo.ActiveAxis = MoveAxis::X;
+                    gizmo.initialClickPos = getMouseWorldPosition(window);
+                }
+            }
+            else if (id == GIZMO_BLUE_ID) {
+                Object* sel = scene.getSelectedObj();
+                if (sel != nullptr) {
+                    gizmo.isMoving = true;
+                    gizmo.ActiveAxis = MoveAxis::Y;
+                    gizmo.initialClickPos = getMouseWorldPosition(window);
+                }
+            }
+            else {
+                int index = id - 1;
+                Object* obj = scene.getObjs()[index];
+                if (!obj->isSelected()) {
+                    obj->toggleSelected();
+                    scene.selectObject(obj);
+                }
+            }
+        }
+    }
+    else if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE && !io.WantCaptureMouse) {
+        gizmo.isMoving = false;
+        gizmo.ActiveAxis = MoveAxis::None;
+    }
+}
+
 
 
 // glfw: whenever the mouse scroll wheel scrolls, this callback is called
@@ -286,27 +339,42 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
     camera.ProcessMouseScroll(static_cast<float>(yoffset));
 }
 
-glm::vec3 getRayFromMouse(
-    float mouseX, float mouseY,
-    float screenWidth, float screenHeight,
-    Camera& camera)
+glm::vec3 getMouseWorldPosition(GLFWwindow* window)
 {
-    // Convert to NDC
-    float x = (2.0f * mouseX) / screenWidth - 1.0f;
-    float y = 1.0f - (2.0f * mouseY) / screenHeight; // Note: y is flipped
-    glm::vec4 rayClip = glm::vec4(x, y, -1.0f, 1.0f);
+    double mouseX_d, mouseY_d;
+    glfwGetCursorPos(window, &mouseX_d, &mouseY_d);
+    float mouseX = static_cast<float>(mouseX_d);
+    float mouseY = static_cast<float>(mouseY_d);
 
-    // Projection and View matrices
-    glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), screenWidth / screenHeight, 0.1f, 100.0f);
+    int winWidth, winHeight;
+    glfwGetWindowSize(window, &winWidth, &winHeight);
+
+    // flip Y for OpenGL window coordinates
+    float readY = (float)(winHeight - 1) - mouseY;
+
+    // Read depth from the depth buffer (call after rendering, before swap)
+    float depth = 1.0f;
+    glFlush(); // ensure commands are flushed to GPU before read
+    glReadPixels((int)mouseX, (int)readY, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &depth);
+
+    if (depth >= 1.0f) {
+        // clicked background/sky — return a point on near plane as fallback or signal no hit
+        // returning camera position + forward*near is often useful:
+        return camera.Position + camera.Front * 0.1f;
+    }
+
+    glm::vec3 ndc;
+    ndc.x = (2.0f * mouseX) / winWidth - 1.0f;
+    ndc.y = 1.0f - (2.0f * mouseY) / winHeight;
+    ndc.z = depth * 2.0f - 1.0f; // convert [0,1] depth to NDC z
+
+    glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom),
+        (float)winWidth / (float)winHeight,
+        0.1f, 100.0f);
     glm::mat4 view = camera.GetViewMatrix();
+    glm::vec4 viewport = glm::vec4(0, 0, winWidth, winHeight);
 
-    // Convert to eye space
-    glm::vec4 rayEye = glm::inverse(projection) * rayClip;
-    rayEye = glm::vec4(rayEye.x, rayEye.y, -1.0f, 0.0f);
-
-    // Convert to world space
-    glm::vec4 rayWorld = glm::inverse(view) * rayEye;
-    glm::vec3 rayDir = glm::normalize(glm::vec3(rayWorld));
-
-    return rayDir; // ray origin is camera.Position
+    glm::vec3 screenPos(mouseX, readY, depth);
+    glm::vec3 worldPos = glm::unProject(screenPos, view, projection, viewport);
+    return worldPos;
 }

@@ -203,7 +203,7 @@ public:
             glBindVertexArray(0);
 
             // draw transform lines
-            shader.setMat4("model", glm::mat4(1.0f)); // or your transform
+            shader.setMat4("model", model); // or your transform
             glLineWidth(20.0f);
             glBindVertexArray(normalVAO);
 
@@ -252,7 +252,7 @@ public:
             glBindVertexArray(0);
 
             // draw transform lines
-            shader.setMat4("model", glm::mat4(1.0f)); // or your transform
+            shader.setMat4("model", model); // or your transform
             glLineWidth(20.0f);
             glBindVertexArray(normalVAO);
 
