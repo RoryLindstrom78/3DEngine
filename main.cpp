@@ -225,6 +225,10 @@ void processInput(GLFWwindow* window, Scene& scene, ColorPicker& colorPicker)
         //// Get ray cast from camera to mouse coordinates
         //glm::vec3 ray = getRayFromMouse((float)mouseX, (float)mouseY, winWidth, winHeight, camera);
         //scene.selectObjectFromRay(camera.Position, ray);
+
+    }
+    if (leftMousePressed && !io.WantCaptureMouse) {
+        std::cout << "WEE" << std::endl;
     }
 
     leftMousePressedLastFrame = leftMousePressed;
