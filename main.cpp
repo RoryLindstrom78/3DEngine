@@ -17,6 +17,7 @@
 #include "Objects.h"
 #include "Scene.h"
 #include "ColorPicker.h"
+#include "constants.h"
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
@@ -28,10 +29,6 @@ glm::vec3 getRayFromMouse(float mouseX, float mouseY, float screenWidth, float s
 Scene scene;
 
 // basic cube vertices, can be scaled later
-
-// settings
-const unsigned int SCR_WIDTH = 800;
-const unsigned int SCR_HEIGHT = 600;
 
 // camera
 Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
@@ -208,10 +205,22 @@ void processInput(GLFWwindow* window, Scene& scene, ColorPicker& colorPicker)
         
         glFlush();
         int id = colorPicker.getObjectIDAtPixel((int)mouseX, (int)mouseY, winHeight);
+        std::cout << id << std::endl;
         if (id != -1) {
-            int index = id - 1; // for indexing
-            Object* obj = scene.getObjs()[index];
-            if (!obj->isSelected()) obj->toggleSelected();
+            if (id == GIZMO_RED_ID) {
+                std::cout << "red" << std::endl;
+            }
+            else if (id == GIZMO_GREEN_ID) {
+                std::cout << "green" << std::endl;
+            }
+            else if (id == GIZMO_BLUE_ID) {
+                std::cout << "blue" << std::endl;
+            }
+            else {
+                int index = id - 1; // for indexing
+                Object* obj = scene.getObjs()[index];
+                if (!obj->isSelected()) obj->toggleSelected();
+            }
         }
         //// Get ray cast from camera to mouse coordinates
         //glm::vec3 ray = getRayFromMouse((float)mouseX, (float)mouseY, winWidth, winHeight, camera);

@@ -10,6 +10,7 @@
 #include "shader.h"
 #include "Scene.h"
 #include "Objects.h"
+#include "constants.h"
 
 // settings
 const unsigned int width = 800; 
@@ -42,8 +43,8 @@ public:
 				((id >> 8) & 0xFF) / 255.0f,
 				(id & 0xFF) / 255.0f
 			);
-			shader.setVec3("pickingColor", color);
-			obj->draw(shader);
+			
+			obj->backDraw(shader, color);
 		}
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	}

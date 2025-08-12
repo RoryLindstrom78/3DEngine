@@ -156,6 +156,7 @@ public:
 
     virtual ~Object() = default;
     virtual void draw(Shader& shader) const = 0;
+    virtual void backDraw(Shader& shader, glm::vec3 color) const = 0;
     virtual bool intersectsRay(const glm::vec3& rayOrigin, const glm::vec3& rayDir, float& distance) const = 0;
     bool isSelected() const { return selected; }
     void toggleSelected() { selected = !selected; }
@@ -203,7 +204,7 @@ public:
 
             // draw transform lines
             shader.setMat4("model", glm::mat4(1.0f)); // or your transform
-            glLineWidth(4.0f);
+            glLineWidth(20.0f);
             glBindVertexArray(normalVAO);
 
             // Set color red for X axis lines
@@ -222,7 +223,54 @@ public:
         }
     }
 
+    void backDraw(Shader& shader, glm::vec3 color) const override {
+        shader.use();
 
+        // --- Draw filled cube ---
+        glm::mat4 model = glm::mat4(1.0f);
+        model = glm::translate(model, position);
+        model = glm::scale(model, size);
+        model = glm::rotate(model, glm::radians(rotation.x), glm::vec3(1, 0, 0));
+        model = glm::rotate(model, glm::radians(rotation.y), glm::vec3(0, 1, 0));
+        model = glm::rotate(model, glm::radians(rotation.z), glm::vec3(0, 0, 1));
+        shader.setMat4("model", model);
+        shader.setVec3("pickingColor", color);
+
+        glBindVertexArray(sharedVAO);
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+        glBindVertexArray(0);
+
+        if (selected) {
+            shader.setVec3("pickingColor", glm::vec3(0.47f, 0.87f, 0.9f));
+            shader.setMat4("model", model);
+
+            glLineWidth(4.0f);
+
+            glBindVertexArray(edgeVAO);
+            glDrawArrays(GL_LINES, 0, 24);
+            glBindVertexArray(0);
+
+            // draw transform lines
+            shader.setMat4("model", glm::mat4(1.0f)); // or your transform
+            glLineWidth(20.0f);
+            glBindVertexArray(normalVAO);
+
+            // Set color red for X axis lines
+            shader.setVec3("pickingColor", glm::vec3(1.0f, 0.0f, 0.0f));
+            glDrawArrays(GL_LINES, 0, 4);
+
+            // Set color green for Y axis lines
+            shader.setVec3("pickingColor", glm::vec3(0.0f, 1.0f, 0.0f));
+            glDrawArrays(GL_LINES, 4, 4);
+
+            // Set color blue for Z axis lines
+            shader.setVec3("pickingColor", glm::vec3(0.0f, 0.0f, 1.0f));
+            glDrawArrays(GL_LINES, 8, 4);
+
+            glBindVertexArray(0);
+        }
+    }
 
     static void cleanupSharedBuffers() {
         if (initialized) {
