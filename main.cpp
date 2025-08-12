@@ -24,9 +24,7 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void processInput(GLFWwindow* window, Scene &scene, ColorPicker& colorPicker, GizmoState& gizmo);
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
-
-
-glm::vec3 getMouseWorldPosition(GLFWwindow* window);
+glm::vec3 getMouseWorldPositionOnPlane(GLFWwindow* window, glm::vec3 planeNormal, glm::vec3 planePoint);
 
 // Scene object
 Scene scene;
@@ -231,24 +229,42 @@ void mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
     bool leftMousePressedNow = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS;
     if (leftMousePressedNow && leftMousePressedLastFrame && !io.WantCaptureMouse) {
         if (gizmo.isMoving) {
-            glm::vec3 currentMousePos = getMouseWorldPosition(window);
-            glm::vec3 delta = currentMousePos - gizmo.initialClickPos;
-
+            glm::vec3 planeNormal;
             switch (gizmo.ActiveAxis) {
             case MoveAxis::X:
-                scene.getSelectedObj()->position.x += delta.x;
+                planeNormal = glm::vec3(0, 0, 1);
                 break;
             case MoveAxis::Y:
-                scene.getSelectedObj()->position.y += delta.y;
+                planeNormal = glm::vec3(1, 0, 0);
                 break;
             case MoveAxis::Z:
-                scene.getSelectedObj()->position.z += delta.z;
+                planeNormal = glm::vec3(0, 1, 0);
                 break;
             default:
-                break;
+                planeNormal = glm::vec3(0, 1, 0); // default fallback
             }
 
-            gizmo.initialClickPos = currentMousePos;
+            glm::vec3 planePoint = scene.getSelectedObj()->position;
+
+            glm::vec3 currentMousePos = getMouseWorldPositionOnPlane(window, planeNormal, planePoint);
+            glm::vec3 delta = currentMousePos - gizmo.initialClickPos;
+
+            // Apply delta along the active axis only
+            glm::vec3 newPos = scene.getSelectedObj()->position;
+            switch (gizmo.ActiveAxis) {
+            case MoveAxis::X:
+                newPos.x += delta.x;
+                break;
+            case MoveAxis::Y:
+                newPos.y += delta.y;
+                break;
+            case MoveAxis::Z:
+                newPos.z += delta.z;
+                break;
+            }
+            scene.getSelectedObj()->position = newPos;
+
+            gizmo.initialClickPos = currentMousePos;  // update for next delta calculation
         }
     }
     else if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS && !io.WantCaptureMouse) {
@@ -289,29 +305,25 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
         int id = colorPickPoint->getObjectIDAtPixel((int)mouseX, (int)mouseY, winHeight);
 
         if (id != -1) {
-            if (id == GIZMO_RED_ID) {
+            if (id == GIZMO_RED_ID || id == GIZMO_GREEN_ID || id == GIZMO_BLUE_ID) {
                 Object* sel = scene.getSelectedObj();
                 if (sel != nullptr) {
+                    glm::vec3 planeNormal;
+                    switch (id) {
+                    case GIZMO_RED_ID:   planeNormal = glm::vec3(0, 1, 0); break;
+                    case GIZMO_GREEN_ID: planeNormal = glm::vec3(0, 0, 1); break;
+                    case GIZMO_BLUE_ID:  planeNormal = glm::vec3(1, 0, 0); break;
+                    }
+
+                    glm::vec3 planePoint = sel->position;
+                    std::cout << planeNormal.x << planeNormal.y << planeNormal.z << std::endl;
+                    // Assign initialClickPos here by projecting mouse click onto drag plane
+                    gizmo.initialClickPos = getMouseWorldPositionOnPlane(window, planeNormal, planePoint);
+
+                    // Now start the dragging state
                     gizmo.isMoving = true;
-                    gizmo.ActiveAxis = MoveAxis::Z;
-                    gizmo.initialClickPos = getMouseWorldPosition(window);
-                }
-            }
-            else if (id == GIZMO_GREEN_ID) {
-                Object* sel = scene.getSelectedObj();
-                if (sel != nullptr) {
-                    std::cout << "GREEN" << std::endl;
-                    gizmo.isMoving = true;
-                    gizmo.ActiveAxis = MoveAxis::X;
-                    gizmo.initialClickPos = getMouseWorldPosition(window);
-                }
-            }
-            else if (id == GIZMO_BLUE_ID) {
-                Object* sel = scene.getSelectedObj();
-                if (sel != nullptr) {
-                    gizmo.isMoving = true;
-                    gizmo.ActiveAxis = MoveAxis::Y;
-                    gizmo.initialClickPos = getMouseWorldPosition(window);
+                    gizmo.ActiveAxis = (id == GIZMO_RED_ID) ? MoveAxis::Z :
+                        (id == GIZMO_GREEN_ID) ? MoveAxis::X : MoveAxis::Y;
                 }
             }
             else {
@@ -319,6 +331,7 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
                 Object* obj = scene.getObjs()[index];
                 if (!obj->isSelected()) {
                     obj->toggleSelected();
+                    if (scene.getSelectedObj() != nullptr) scene.getSelectedObj()->selected = false;
                     scene.selectObject(obj);
                 }
             }
@@ -339,7 +352,7 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
     camera.ProcessMouseScroll(static_cast<float>(yoffset));
 }
 
-glm::vec3 getMouseWorldPosition(GLFWwindow* window)
+glm::vec3 getMouseWorldPositionOnPlane(GLFWwindow* window, glm::vec3 planeNormal, glm::vec3 planePoint)
 {
     double mouseX_d, mouseY_d;
     glfwGetCursorPos(window, &mouseX_d, &mouseY_d);
@@ -349,32 +362,34 @@ glm::vec3 getMouseWorldPosition(GLFWwindow* window)
     int winWidth, winHeight;
     glfwGetWindowSize(window, &winWidth, &winHeight);
 
-    // flip Y for OpenGL window coordinates
-    float readY = (float)(winHeight - 1) - mouseY;
+    // Convert screen mouse coords to normalized device coords (NDC)
+    float x = (2.0f * mouseX) / winWidth - 1.0f;
+    float y = 1.0f - (2.0f * mouseY) / winHeight;
 
-    // Read depth from the depth buffer (call after rendering, before swap)
-    float depth = 1.0f;
-    glFlush(); // ensure commands are flushed to GPU before read
-    glReadPixels((int)mouseX, (int)readY, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &depth);
+    glm::vec4 rayClip = glm::vec4(x, y, -1.0f, 1.0f);
+    glm::mat4 proj = glm::perspective(glm::radians(camera.Zoom), (float)winWidth / winHeight, 0.1f, 100.0f);
+    glm::mat4 invProj = glm::inverse(proj);
 
-    if (depth >= 1.0f) {
-        // clicked background/sky — return a point on near plane as fallback or signal no hit
-        // returning camera position + forward*near is often useful:
-        return camera.Position + camera.Front * 0.1f;
-    }
+    glm::vec4 rayEye = invProj * rayClip;
+    rayEye.z = -1.0f; rayEye.w = 0.0f;
 
-    glm::vec3 ndc;
-    ndc.x = (2.0f * mouseX) / winWidth - 1.0f;
-    ndc.y = 1.0f - (2.0f * mouseY) / winHeight;
-    ndc.z = depth * 2.0f - 1.0f; // convert [0,1] depth to NDC z
-
-    glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom),
-        (float)winWidth / (float)winHeight,
-        0.1f, 100.0f);
     glm::mat4 view = camera.GetViewMatrix();
-    glm::vec4 viewport = glm::vec4(0, 0, winWidth, winHeight);
+    glm::mat4 invView = glm::inverse(view);
 
-    glm::vec3 screenPos(mouseX, readY, depth);
-    glm::vec3 worldPos = glm::unProject(screenPos, view, projection, viewport);
-    return worldPos;
+    glm::vec4 rayWorld4 = invView * rayEye;
+    glm::vec3 rayWorld = glm::normalize(glm::vec3(rayWorld4));
+
+    glm::vec3 rayOrigin = camera.Position;
+
+    // Ray-plane intersection
+    float denom = glm::dot(planeNormal, rayWorld);
+    if (abs(denom) > 0.0001f) {
+        float t = glm::dot(planePoint - rayOrigin, planeNormal) / denom;
+        if (t >= 0) {
+            return rayOrigin + t * rayWorld;
+        }
+    }
+    // Return some fallback point if no intersection
+    return rayOrigin;
 }
+
