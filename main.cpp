@@ -52,7 +52,7 @@ int main() {
     // glfw: initialize and configure
     // ------------------------------
     glfwInit();
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
@@ -124,6 +124,7 @@ int main() {
     Shader colorPickShader("Vertex.vs", "ColorPickerFrag.fs");
     ColorPicker colorPicker(scene, colorPickShader, camera);
     colorPickPoint = &colorPicker; // for scope purposes
+
 
     while (!glfwWindowShouldClose(window)) {
         // per-frame time logic
@@ -225,8 +226,12 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 void mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
 {
     static bool leftMousePressedLastFrame = false;
+    static bool rightMousePressedLastFrame = false;  // Track right mouse button state
     ImGuiIO& io = ImGui::GetIO();
     bool leftMousePressedNow = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS;
+    bool rightMousePressedNow = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS;
+
+    // Left mouse drag handling (gizmo moving)
     if (leftMousePressedNow && leftMousePressedLastFrame && !io.WantCaptureMouse) {
         if (gizmo.isMoving) {
             glm::vec3 planeNormal;
@@ -267,11 +272,13 @@ void mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
             gizmo.initialClickPos = currentMousePos;  // update for next delta calculation
         }
     }
-    else if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS && !io.WantCaptureMouse) {
+    // Right mouse drag handling (camera rotation)
+    else if (rightMousePressedNow && !io.WantCaptureMouse) {
         float xpos = static_cast<float>(xposIn);
         float ypos = static_cast<float>(yposIn);
 
-        if (firstMouse)
+        // Reset lastX, lastY when right button is just pressed this frame
+        if (rightMousePressedNow && !rightMousePressedLastFrame)
         {
             lastX = xpos;
             lastY = ypos;
@@ -288,7 +295,9 @@ void mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
     }
 
     leftMousePressedLastFrame = leftMousePressedNow;
+    rightMousePressedLastFrame = rightMousePressedNow;
 }
+
 
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 {
@@ -303,6 +312,7 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
         glfwGetWindowSize(window, &winWidth, &winHeight);
 
         int id = colorPickPoint->getObjectIDAtPixel((int)mouseX, (int)mouseY, winHeight);
+        std::cout << id << std::endl;
 
         if (id != -1) {
             if (id == GIZMO_RED_ID || id == GIZMO_GREEN_ID || id == GIZMO_BLUE_ID) {
@@ -330,10 +340,15 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
                 int index = id - 1;
                 Object* obj = scene.getObjs()[index];
                 if (!obj->isSelected()) {
-                    obj->toggleSelected();
-                    if (scene.getSelectedObj() != nullptr) scene.getSelectedObj()->selected = false;
+                    if (scene.getSelectedObj() != nullptr) scene.getSelectedObj()->offSelected();
+                    obj->onSelected();
                     scene.selectObject(obj);
                 }
+            }
+        }
+        else {
+            if (scene.getSelectedObj()) {
+                scene.getSelectedObj()->offSelected();
             }
         }
     }

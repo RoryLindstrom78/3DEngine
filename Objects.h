@@ -159,7 +159,8 @@ public:
     virtual void backDraw(Shader& shader, glm::vec3 color) const = 0;
     virtual bool intersectsRay(const glm::vec3& rayOrigin, const glm::vec3& rayDir, float& distance) const = 0;
     bool isSelected() const { return selected; }
-    void toggleSelected() { selected = !selected; }
+    void onSelected() { selected = true; }
+    void offSelected() { selected = false; }
 };
 
 // Cube class with shared VAO/VBO

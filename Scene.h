@@ -59,7 +59,7 @@ public:
 
 		selectedObject = closestObject;
 		if (selectedObject) {
-			if (!selectedObject->isSelected()) selectedObject->toggleSelected();
+			if (!selectedObject->isSelected()) selectedObject->onSelected();
 		}
 
 
