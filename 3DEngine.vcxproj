@@ -158,6 +158,8 @@
     <None Include="ColorPickerFrag.fs" />
     <None Include="Compute.vs" />
     <None Include="Fragment.fs" />
+    <None Include="PBRFrag.fs" />
+    <None Include="PBRVertex.vs" />
     <None Include="skybox.fs" />
     <None Include="skybox.vs" />
     <None Include="Vertex.vs" />

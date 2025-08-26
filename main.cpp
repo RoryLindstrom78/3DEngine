@@ -120,7 +120,7 @@ int main() {
 
     // build and compile shaders
     // -------------------------
-    Shader ourShader("Vertex.vs", "Fragment.fs");
+    Shader ourShader("PBRVertex.vs", "PBRFrag.fs");
 
     // Color picker FBO
     Shader colorPickShader("Vertex.vs", "ColorPickerFrag.fs");
@@ -179,6 +179,11 @@ int main() {
         }
         ImGui::End();
 
+        ourShader.use();
+        ourShader.setVec3("albedo", 0.5f, 0.0f, 0.0f);
+        ourShader.setFloat("ao", 1.0f);
+        ourShader.setFloat("metallic", 0.5);
+        ourShader.setFloat("roughness", 0.5);
         scene.draw(ourShader);
 
         skybox.draw(skyboxShader);

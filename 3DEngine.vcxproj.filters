@@ -97,6 +97,12 @@
     <None Include="skybox.fs">
       <Filter>shaders</Filter>
     </None>
+    <None Include="PBRFrag.fs">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="PBRVertex.vs">
+      <Filter>shaders</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Image Include="..\..\..\..\Pictures\skybox\back.jpg">
