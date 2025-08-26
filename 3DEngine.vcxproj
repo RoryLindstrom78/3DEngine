@@ -147,15 +147,28 @@
   <ItemGroup>
     <ClInclude Include="camera.h" />
     <ClInclude Include="ColorPicker.h" />
+    <ClInclude Include="computeShader.h" />
     <ClInclude Include="Objects.h" />
     <ClInclude Include="Scene.h" />
     <ClInclude Include="shader.h" />
+    <ClInclude Include="skybox.h" />
     <ClInclude Include="stb_image.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="ColorPickerFrag.fs" />
+    <None Include="Compute.vs" />
     <None Include="Fragment.fs" />
+    <None Include="skybox.fs" />
+    <None Include="skybox.vs" />
     <None Include="Vertex.vs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="..\..\..\..\Pictures\skybox\back.jpg" />
+    <Image Include="..\..\..\..\Pictures\skybox\bottom.jpg" />
+    <Image Include="..\..\..\..\Pictures\skybox\front.jpg" />
+    <Image Include="..\..\..\..\Pictures\skybox\left.jpg" />
+    <Image Include="..\..\..\..\Pictures\skybox\right.jpg" />
+    <Image Include="..\..\..\..\Pictures\skybox\top.jpg" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

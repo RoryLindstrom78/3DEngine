@@ -10,14 +10,17 @@
 #include "backends/imgui_impl_opengl3.h"
 
 #include <iostream>
+#include <vector>
 #include "camera.h"
 #include "shader.h"
+#include "computeShader.h"
 #include "stb_image.h"
 #include <vector>
 #include "Objects.h"
 #include "Scene.h"
 #include "ColorPicker.h"
 #include "constants.h"
+#include "skybox.h"
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
@@ -32,7 +35,6 @@ Scene scene;
 // basic cube vertices, can be scaled later
 
 // camera
-Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
 float lastX = SCR_WIDTH / 2.0f;
 float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
@@ -99,7 +101,7 @@ int main() {
     }
 
     // tell stb_image.h to flip loaded texture's on the y-axis (before loading model).
-    stbi_set_flip_vertically_on_load(true);
+    stbi_set_flip_vertically_on_load(false); // this might need to be set to true though later
 
     // configure global opengl state
     // -----------------------------
@@ -112,7 +114,7 @@ int main() {
     ImGui::StyleColorsDark(); // Or ImGui::StyleColorsClassic();
 
     ImGui_ImplGlfw_InitForOpenGL(window, true);
-    ImGui_ImplOpenGL3_Init("#version 330");  // Your GLSL version
+    ImGui_ImplOpenGL3_Init("#version 430");  // Your GLSL version
 
 
 
@@ -125,6 +127,11 @@ int main() {
     ColorPicker colorPicker(scene, colorPickShader, camera);
     colorPickPoint = &colorPicker; // for scope purposes
 
+    // Skybox
+    skybox skybox;
+    Shader skyboxShader("skybox.vs", "skybox.fs");
+    skyboxShader.use();
+    skyboxShader.setInt("skybox", 0);
 
     while (!glfwWindowShouldClose(window)) {
         // per-frame time logic
@@ -173,6 +180,8 @@ int main() {
         ImGui::End();
 
         scene.draw(ourShader);
+
+        skybox.draw(skyboxShader);
 
         // Render ImGui
         ImGui::Render();
@@ -407,4 +416,3 @@ glm::vec3 getMouseWorldPositionOnPlane(GLFWwindow* window, glm::vec3 planeNormal
     // Return some fallback point if no intersection
     return rayOrigin;
 }
-
