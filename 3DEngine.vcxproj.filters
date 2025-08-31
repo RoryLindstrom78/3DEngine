@@ -19,6 +19,9 @@
     <Filter Include="Source Files\ImGUI">
       <UniqueIdentifier>{f8d4632b-f490-4fd4-884a-9c13dd99332c}</UniqueIdentifier>
     </Filter>
+    <Filter Include="skyboxes">
+      <UniqueIdentifier>{0328756e-9be6-475c-9632-c14061f3593c}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -101,6 +104,24 @@
       <Filter>shaders</Filter>
     </None>
     <None Include="PBRVertex.vs">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="cubemap.vs">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="equirectangular_to_cubemap.fs">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="background.vs">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="background.fs">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="citrus_orchard_road_puresky_4k.hdr">
+      <Filter>skyboxes</Filter>
+    </None>
+    <None Include="PBRFrag2.fs">
       <Filter>shaders</Filter>
     </None>
   </ItemGroup>

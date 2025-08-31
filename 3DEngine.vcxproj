@@ -155,10 +155,16 @@
     <ClInclude Include="stb_image.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="background.fs" />
+    <None Include="background.vs" />
+    <None Include="citrus_orchard_road_puresky_4k.hdr" />
     <None Include="ColorPickerFrag.fs" />
     <None Include="Compute.vs" />
+    <None Include="cubemap.vs" />
+    <None Include="equirectangular_to_cubemap.fs" />
     <None Include="Fragment.fs" />
     <None Include="PBRFrag.fs" />
+    <None Include="PBRFrag2.fs" />
     <None Include="PBRVertex.vs" />
     <None Include="skybox.fs" />
     <None Include="skybox.vs" />
