@@ -124,6 +124,21 @@
     <None Include="PBRFrag2.fs">
       <Filter>shaders</Filter>
     </None>
+    <None Include="irradiance_convolution.fs">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="prefilter.fs">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="brdf.vs">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="brdf.fs">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="brown_photostudio_02_4k.hdr">
+      <Filter>skyboxes</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Image Include="..\..\..\..\Pictures\skybox\back.jpg">
