@@ -8,7 +8,7 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include "shader.h"
-#include "Scene.h"
+#include "scene.h"
 #include "Objects.h"
 #include "constants.h"
 
@@ -18,7 +18,7 @@ const unsigned int height = 600;
 
 class ColorPicker {
 public:
-	ColorPicker(Scene& scne, Shader& shdr, Camera& cmra) : scene(scne), shader(shdr), camera(cmra) {
+	ColorPicker(Scene& scne, Shader& shdr, Camera& cmra, StateManager& ste) : scene(scne), shader(shdr), camera(cmra), state(ste) {
 		initSharedBuffers();
 	}
 
@@ -43,8 +43,8 @@ public:
 				((id >> 8) & 0xFF) / 255.0f,
 				(id & 0xFF) / 255.0f
 			);
-			
-			obj->backDraw(shader, color);
+
+			obj->backDraw(shader, color, state);
 		}
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	}
@@ -72,6 +72,7 @@ private:
 	Scene& scene;
 	Shader& shader;
 	Camera& camera;
+	StateManager& state;
 
 	static void initSharedBuffers() {
 		if (initialized) return;

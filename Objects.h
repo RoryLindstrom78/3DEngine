@@ -1,4 +1,5 @@
 #pragma once
+#define _USE_MATH_DEFINES
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -7,7 +8,10 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#include <math.h>
+
 #include "shader.h"
+#include "stateManager.h"
 
 // Ray intersection function
 bool rayIntersectsAABB(const glm::vec3& rayOrigin, const glm::vec3& rayDir, const glm::vec3& boxMin, const glm::vec3& boxMax, float& t) // output: distance along ray to intersection
@@ -72,21 +76,12 @@ static float cubeNormals[] = {
    0.0f, -0.5f, 0.0f,  0.0f, -1.0f, 0.0f
 };
 
+// rotation gizmo calculations
+const int segments = 64;
+const float radius = 0.75f;
 
-// lights
-// ------
-glm::vec3 lightPositions[] = {
-    glm::vec3(-10.0f,  10.0f, 10.0f),
-    glm::vec3(10.0f,  10.0f, 10.0f),
-    glm::vec3(-10.0f, -10.0f, 10.0f),
-    glm::vec3(10.0f, -10.0f, 10.0f),
-};
-glm::vec3 lightColors[] = {
-    glm::vec3(300.0f, 300.0f, 300.0f),
-    glm::vec3(300.0f, 300.0f, 300.0f),
-    glm::vec3(300.0f, 300.0f, 300.0f),
-    glm::vec3(300.0f, 300.0f, 300.0f)
-};
+// Segments to draw circle for rotation gizmo
+std::vector<float> rotationVertices;
 
 // Cube vertex data
 float cubeVertices[] = {
@@ -168,11 +163,22 @@ public:
         glm::vec3 sze = glm::vec3(1.0f),
         glm::vec3 rot = glm::vec3(0.0f))
         : position(pos), size(sze), rotation(rot), selected(false) {
+
+        // draw rotation gizmo segments here
+        for (int i = 0; i < segments; i++) {
+            float theta = 2.0f * M_PI * float(i) / float(segments);
+            float x = radius * cos(theta);
+            float y = radius * sin(theta);
+            rotationVertices.push_back(x);
+            rotationVertices.push_back(y);
+            rotationVertices.push_back(0.0f); // z=0, so it's in XY plane
+        }
+
     }
 
     virtual ~Object() = default;
-    virtual void draw(Shader& shader) const = 0;
-    virtual void backDraw(Shader& shader, glm::vec3 color) const = 0;
+    virtual void draw(Shader& shader, StateManager& state) const = 0;
+    virtual void backDraw(Shader& shader, glm::vec3 color, StateManager& state) const = 0;
     virtual bool intersectsRay(const glm::vec3& rayOrigin, const glm::vec3& rayDir, float& distance) const = 0;
     bool isSelected() const { return selected; }
     void onSelected() { selected = true; }
@@ -190,7 +196,7 @@ public:
         initSharedBuffers();
     }
 
-    void draw(Shader& shader) const override {
+    void draw(Shader& shader, StateManager& state) const {
         shader.use();
         shader.setBool("usePBR", true);
 
@@ -204,14 +210,7 @@ public:
         shader.setMat4("model", model);
         shader.setMat3("normalMatrix", glm::transpose(glm::inverse(glm::mat3(model))));
         //shader.setVec3("inColor", glm::vec3(0.9f, 0.3f, 0.3f));
-
-        for (unsigned int i = 0; i < sizeof(lightPositions) / sizeof(lightPositions[0]); ++i)
-        {
-            glm::vec3 newPos = lightPositions[i] + glm::vec3(sin(glfwGetTime() * 5.0) * 5.0, 0.0, 0.0);
-            newPos = lightPositions[i];
-            shader.setVec3("lightPositions[" + std::to_string(i) + "]", newPos);
-            shader.setVec3("lightColors[" + std::to_string(i) + "]", lightColors[i]);
-        }
+         
 
 
         glBindVertexArray(sharedVAO);
@@ -231,28 +230,48 @@ public:
             glDrawArrays(GL_LINES, 0, 24);
             glBindVertexArray(0);
 
-            // draw transform lines
-            shader.setMat4("model", model); // or your transform
-            glLineWidth(20.0f);
-            glBindVertexArray(normalVAO);
+            if (state.getActiveTool() == GizmoTool::move) {
+                // draw transform lines
+                shader.setMat4("model", model); // or your transform
+                glLineWidth(20.0f);
+                glBindVertexArray(normalVAO);
 
-            // Set color red for X axis lines
-            shader.setVec3("inColor", glm::vec3(1.0f, 0.0f, 0.0f));
-            glDrawArrays(GL_LINES, 0, 4);
+                // Set color red for X axis lines
+                shader.setVec3("inColor", glm::vec3(1.0f, 0.0f, 0.0f));
+                glDrawArrays(GL_LINES, 0, 4);
 
-            // Set color green for Y axis lines
-            shader.setVec3("inColor", glm::vec3(0.0f, 1.0f, 0.0f));
-            glDrawArrays(GL_LINES, 4, 4);
+                // Set color green for Y axis lines
+                shader.setVec3("inColor", glm::vec3(0.0f, 1.0f, 0.0f));
+                glDrawArrays(GL_LINES, 4, 4);
 
-            // Set color blue for Z axis lines
-            shader.setVec3("inColor", glm::vec3(0.0f, 0.0f, 1.0f));
-            glDrawArrays(GL_LINES, 8, 4);
+                // Set color blue for Z axis lines
+                shader.setVec3("inColor", glm::vec3(0.0f, 0.0f, 1.0f));
+                glDrawArrays(GL_LINES, 8, 4);
+            }
+
+            if (state.getActiveTool() == GizmoTool::rotate) {
+                glLineWidth(7.5f);
+
+                glBindVertexArray(rotVAO);
+                shader.setVec3("inColor", glm::vec3(1.0f, 0.0f, 0.0f));
+                glDrawArrays(GL_LINE_LOOP, 0, segments);
+
+                glm::mat4 modelXZ = model * glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(1, 0, 0));
+                shader.setMat4("model", modelXZ);
+                shader.setVec3("inColor", glm::vec3(0.0f, 0.0, 1.0f));
+                glDrawArrays(GL_LINE_LOOP, 0, segments);
+
+                glm::mat4 modelYZ = model * glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(0, 1, 0));
+                shader.setMat4("model", modelYZ);
+                shader.setVec3("inColor", glm::vec3(0.0f, 1.0f, 0.0f));
+                glDrawArrays(GL_LINE_LOOP, 0, segments);
+            }
 
             glBindVertexArray(0);
         }
     }
 
-    void backDraw(Shader& shader, glm::vec3 color) const override {
+    void backDraw(Shader& shader, glm::vec3 color, StateManager& state) const override {
         shader.use();
 
         // --- Draw filled cube ---
@@ -271,33 +290,28 @@ public:
         glBindVertexArray(0);
 
         if (selected) {
-            shader.setVec3("pickingColor", glm::vec3(0.47f, 0.87f, 0.9f));
-            shader.setMat4("model", model);
-
             glLineWidth(4.0f);
 
-            glBindVertexArray(edgeVAO);
-            glDrawArrays(GL_LINES, 0, 24);
-            glBindVertexArray(0);
+            if (state.getActiveTool() == GizmoTool::move) {
+                // draw transform lines
+                shader.setMat4("model", model); // or your transform
+                glLineWidth(20.0f);
+                glBindVertexArray(normalVAO);
 
-            // draw transform lines
-            shader.setMat4("model", model); // or your transform
-            glLineWidth(20.0f);
-            glBindVertexArray(normalVAO);
+                // Set color red for X axis lines
+                shader.setVec3("pickingColor", glm::vec3(1.0f, 0.0f, 0.0f));
+                glDrawArrays(GL_LINES, 0, 4);
 
-            // Set color red for X axis lines
-            shader.setVec3("pickingColor", glm::vec3(1.0f, 0.0f, 0.0f));
-            glDrawArrays(GL_LINES, 0, 4);
+                // Set color green for Y axis lines
+                shader.setVec3("pickingColor", glm::vec3(0.0f, 1.0f, 0.0f));
+                glDrawArrays(GL_LINES, 4, 4);
 
-            // Set color green for Y axis lines
-            shader.setVec3("pickingColor", glm::vec3(0.0f, 1.0f, 0.0f));
-            glDrawArrays(GL_LINES, 4, 4);
+                // Set color blue for Z axis lines
+                shader.setVec3("pickingColor", glm::vec3(0.0f, 0.0f, 1.0f));
+                glDrawArrays(GL_LINES, 8, 4);
 
-            // Set color blue for Z axis lines
-            shader.setVec3("pickingColor", glm::vec3(0.0f, 0.0f, 1.0f));
-            glDrawArrays(GL_LINES, 8, 4);
-
-            glBindVertexArray(0);
+                glBindVertexArray(0);
+            }
         }
     }
 
@@ -320,6 +334,8 @@ private:
     static GLuint edgeVBO;
     static GLuint normalVAO;
     static GLuint normalVBO;
+    static GLuint rotVAO;
+    static GLuint rotVBO;
     static unsigned int sharedVAO;
     static unsigned int sharedVBO;
     static bool initialized;
@@ -376,6 +392,20 @@ private:
         
         glBindVertexArray(0);
 
+        // Rotation gizmo VAO and VBO
+        glGenVertexArrays(1, &rotVAO);
+        glGenBuffers(1, &rotVBO);
+
+        glBindVertexArray(rotVAO);
+        glBindBuffer(GL_ARRAY_BUFFER, rotVBO);
+        glBufferData(GL_ARRAY_BUFFER, rotationVertices.size() * sizeof(float), rotationVertices.data(), GL_STATIC_DRAW);
+
+        // position attribute
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+
+        glBindVertexArray(0);
+
         initialized = true;
     }
 };
@@ -385,6 +415,8 @@ GLuint Cube::edgeVAO = 0;
 GLuint Cube::edgeVBO = 0;
 GLuint Cube::normalVAO = 0;
 GLuint Cube::normalVBO = 0;
+GLuint Cube::rotVAO = 0;
+GLuint Cube::rotVBO = 0;
 unsigned int Cube::sharedVAO = 0;
 unsigned int Cube::sharedVBO = 0;
 bool Cube::initialized = false;

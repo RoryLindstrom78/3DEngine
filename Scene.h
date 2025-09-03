@@ -1,22 +1,16 @@
 #pragma once
 #include <vector>
 #include "shader.h"
+#include "constants.h"
 #include "Objects.h"
 #include <iostream>
-
-enum class MoveAxis { None, X, Y, Z };
-
-struct GizmoState {
-	bool isMoving = false;
-	MoveAxis ActiveAxis = MoveAxis::None;
-	glm::vec3 initialClickPos;
-};
 
 class Scene {
 private:
 	Object* selectedObject = nullptr;
 	int numObjects = 0;
 	std::vector<Object*> objs;
+	GizmoTool activeTool = GizmoTool::move;
 public:
 	void addObj(Object *obj) { 
 		objs.push_back(obj); 
@@ -27,9 +21,9 @@ public:
 
 	Object* getSelectedObj() { return selectedObject; }
 
-	void draw(Shader& shader) {
+	void draw(Shader& shader, StateManager& state) {
 		for (const Object* obj : objs) {
-			obj->draw(shader);
+			obj->draw(shader, state);
 		}
 	}
 

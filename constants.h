@@ -1,4 +1,6 @@
 #pragma once
+#include "camera.h"
+
 
 // settings
 extern const unsigned int SCR_WIDTH = 800;
@@ -10,3 +12,12 @@ extern const int GIZMO_BLUE_ID = (0 << 16) | (0 << 8) | 255;   // 0x0000FF = 255
 
 // Camera
 Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
+
+// Gizmo stuff
+enum class GizmoTool { None, move, rotate };
+enum class Axis { None, X, Y, Z };
+
+struct GizmoState {
+	Axis ActiveAxis = Axis::None;
+	glm::vec3 initialClickPos;
+};

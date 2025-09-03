@@ -149,9 +149,10 @@
     <ClInclude Include="ColorPicker.h" />
     <ClInclude Include="computeShader.h" />
     <ClInclude Include="Objects.h" />
-    <ClInclude Include="Scene.h" />
+    <ClInclude Include="scene.h" />
     <ClInclude Include="shader.h" />
     <ClInclude Include="skybox.h" />
+    <ClInclude Include="stateManager.h" />
     <ClInclude Include="stb_image.h" />
   </ItemGroup>
   <ItemGroup>
@@ -161,6 +162,7 @@
     <None Include="brdf.vs" />
     <None Include="brown_photostudio_02_4k.hdr" />
     <None Include="citrus_orchard_road_puresky_4k.hdr" />
+    <None Include="cobblestone_street_night_4k.hdr" />
     <None Include="ColorPickerFrag.fs" />
     <None Include="Compute.vs" />
     <None Include="cubemap.vs" />

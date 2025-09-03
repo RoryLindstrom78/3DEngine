@@ -13,12 +13,14 @@
 #include <vector>
 #include "camera.h"
 #include "shader.h"
+#include "scene.h"
+#include "ColorPicker.h"
 #include "computeShader.h"
 #include "stb_image.h"
 #include <vector>
 #include "Objects.h"
-#include "Scene.h"
-#include "ColorPicker.h"
+#include "stateManager.h"
+
 #include "constants.h"
 #include "skybox.h"
 
@@ -33,10 +35,17 @@ glm::vec3 getMouseWorldPositionOnPlane(GLFWwindow* window, glm::vec3 planeNormal
 void renderCube();
 void renderQuad();
 
-// Scene object
+// Scene
 Scene scene;
 
-// basic cube vertices, can be scaled later
+// Gizmo State Manager
+GizmoState gizmo;
+
+// Global pointer to color picker object
+ColorPicker* colorPickPoint;
+
+// State Manager
+StateManager state = StateManager();
 
 // camera
 float lastX = SCR_WIDTH / 2.0f;
@@ -47,11 +56,6 @@ bool firstMouse = true;
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 
-// Gizmo State Manager
-GizmoState gizmo;
-
-// Global pointer to color picker object
-ColorPicker* colorPickPoint;
 
 glm::mat4 captureProjection = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 10.0f);
 glm::mat4 captureViews[] =
@@ -139,8 +143,8 @@ int main() {
 
     // Color picker FBO
     Shader colorPickShader("Vertex.vs", "ColorPickerFrag.fs");
-    ColorPicker colorPicker(scene, colorPickShader, camera);
-    colorPickPoint = &colorPicker; // for scope purposes
+    ColorPicker colorPicker(scene, colorPickShader, camera, state);
+    colorPickPoint = &colorPicker; // for scope purposes 
 
     // Skybox
     //Shader skyboxShader("skybox.vs", "skybox.fs");
@@ -155,7 +159,7 @@ int main() {
     ourShader.setInt("irradianceMap", 0);
     ourShader.setInt("prefilterMap", 1);
     ourShader.setInt("brdfLUT", 2);
-    ourShader.setVec3("albedo", 0.5f, 0.0f, 0.0f);
+    ourShader.setVec3("albedo", 0.9f, 0.001f, 0.0f);
     ourShader.setFloat("ao", 1.0f);
 
     backgroundShader.use();
@@ -432,9 +436,9 @@ int main() {
         ImGui::End();
 
 
-        ourShader.setFloat("metallic", 0.9);
-        ourShader.setFloat("roughness", 0.3);
-        scene.draw(ourShader);
+        ourShader.setFloat("metallic", 0.5f);
+        ourShader.setFloat("roughness", 0.5f);
+        scene.draw(ourShader, state);
         
         // render skybox (render as last to prevent overdraw)
         glDepthFunc(GL_LEQUAL);  // skybox passes when depth is <= current depth
@@ -483,6 +487,12 @@ void processInput(GLFWwindow* window, Scene& scene, ColorPicker& colorPicker, Gi
         camera.ProcessKeyboard(LEFT, deltaTime);
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
         camera.ProcessKeyboard(RIGHT, deltaTime);
+    if (glfwGetKey(window, GLFW_KEY_M) == GLFW_PRESS) {
+        state.setMoveTool();
+    }
+    if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS) {
+        state.setRotateTool();
+    }
 }
 
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes
@@ -506,16 +516,16 @@ void mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
 
     // Left mouse drag handling (gizmo moving)
     if (leftMousePressedNow && leftMousePressedLastFrame && !io.WantCaptureMouse) {
-        if (gizmo.isMoving) {
+        if (state.getActiveTool() == GizmoTool::move) {
             glm::vec3 planeNormal;
             switch (gizmo.ActiveAxis) {
-            case MoveAxis::X:
+            case Axis::X:
                 planeNormal = glm::vec3(0, 0, 1);
                 break;
-            case MoveAxis::Y:
+            case Axis::Y:
                 planeNormal = glm::vec3(1, 0, 0);
                 break;
-            case MoveAxis::Z:
+            case Axis::Z:
                 planeNormal = glm::vec3(0, 1, 0);
                 break;
             default:
@@ -530,19 +540,23 @@ void mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
             // Apply delta along the active axis only
             glm::vec3 newPos = scene.getSelectedObj()->position;
             switch (gizmo.ActiveAxis) {
-            case MoveAxis::X:
+            case Axis::X:
                 newPos.x += delta.x;
                 break;
-            case MoveAxis::Y:
+            case Axis::Y:
                 newPos.y += delta.y;
                 break;
-            case MoveAxis::Z:
+            case Axis::Z:
                 newPos.z += delta.z;
                 break;
             }
             scene.getSelectedObj()->position = newPos;
 
             gizmo.initialClickPos = currentMousePos;  // update for next delta calculation
+        }
+
+        if (state.getActiveTool() == GizmoTool::rotate) {
+
         }
     }
     // Right mouse drag handling (camera rotation)
@@ -585,7 +599,6 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
         glfwGetWindowSize(window, &winWidth, &winHeight);
 
         int id = colorPickPoint->getObjectIDAtPixel((int)mouseX, (int)mouseY, winHeight);
-        std::cout << id << std::endl;
 
         if (id != -1) {
             if (id == GIZMO_RED_ID || id == GIZMO_GREEN_ID || id == GIZMO_BLUE_ID) {
@@ -599,14 +612,13 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
                     }
 
                     glm::vec3 planePoint = sel->position;
-                    std::cout << planeNormal.x << planeNormal.y << planeNormal.z << std::endl;
                     // Assign initialClickPos here by projecting mouse click onto drag plane
                     gizmo.initialClickPos = getMouseWorldPositionOnPlane(window, planeNormal, planePoint);
 
                     // Now start the dragging state
-                    gizmo.isMoving = true;
-                    gizmo.ActiveAxis = (id == GIZMO_RED_ID) ? MoveAxis::Z :
-                        (id == GIZMO_GREEN_ID) ? MoveAxis::X : MoveAxis::Y;
+                    state.setMoveTool();
+                    gizmo.ActiveAxis = (id == GIZMO_RED_ID) ? Axis::Z :
+                        (id == GIZMO_GREEN_ID) ? Axis::X : Axis::Y;
                 }
             }
             else {
@@ -626,8 +638,7 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
         }
     }
     else if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE && !io.WantCaptureMouse) {
-        gizmo.isMoving = false;
-        gizmo.ActiveAxis = MoveAxis::None;
+        gizmo.ActiveAxis = Axis::None;
     }
 }
 

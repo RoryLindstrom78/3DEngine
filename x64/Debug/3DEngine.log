@@ -1,4 +1,5 @@
 ﻿  main.cpp
-C:\Users\HACKSHIT\source\repos\3DEngine\3DEngine\main.cpp(435,40): warning C4305: 'argument': truncation from 'double' to 'float'
-C:\Users\HACKSHIT\source\repos\3DEngine\3DEngine\main.cpp(436,41): warning C4305: 'argument': truncation from 'double' to 'float'
+C:\Users\HACKSHIT\source\repos\3DEngine\3DEngine\Objects.h(169,25): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+  (compiling source file 'main.cpp')
+  
   3DEngine.vcxproj -> C:\Users\HACKSHIT\source\repos\3DEngine\x64\Debug\3DEngine.exe

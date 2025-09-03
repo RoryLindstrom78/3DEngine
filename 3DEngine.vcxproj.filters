@@ -68,7 +68,7 @@
     <ClInclude Include="Objects.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Scene.h">
+    <ClInclude Include="scene.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="ColorPicker.h">
@@ -78,6 +78,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="skybox.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="stateManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -137,6 +140,9 @@
       <Filter>shaders</Filter>
     </None>
     <None Include="brown_photostudio_02_4k.hdr">
+      <Filter>skyboxes</Filter>
+    </None>
+    <None Include="cobblestone_street_night_4k.hdr">
       <Filter>skyboxes</Filter>
     </None>
   </ItemGroup>
