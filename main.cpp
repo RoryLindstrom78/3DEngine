@@ -9,6 +9,7 @@
 #include "backends/imgui_impl_glfw.h"
 #include "backends/imgui_impl_opengl3.h"
 
+#include <cmath>
 #include <iostream>
 #include <vector>
 #include "camera.h"
@@ -517,46 +518,79 @@ void mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
     // Left mouse drag handling (gizmo moving)
     if (leftMousePressedNow && leftMousePressedLastFrame && !io.WantCaptureMouse) {
         if (state.getActiveTool() == GizmoTool::move) {
-            glm::vec3 planeNormal;
+            Object* obj = scene.getSelectedObj();
+            if (!obj) return;
+
+            // Step 1: get the local axis in world space
+            glm::vec3 axis;
             switch (gizmo.ActiveAxis) {
-            case Axis::X:
-                planeNormal = glm::vec3(0, 0, 1);
-                break;
-            case Axis::Y:
-                planeNormal = glm::vec3(1, 0, 0);
-                break;
-            case Axis::Z:
-                planeNormal = glm::vec3(0, 1, 0);
-                break;
-            default:
-                planeNormal = glm::vec3(0, 1, 0); // default fallback
+            case Axis::X: axis = obj->orientation * glm::vec3(1, 0, 0); break;
+            case Axis::Y: axis = obj->orientation * glm::vec3(0, 1, 0); break;
+            case Axis::Z: axis = obj->orientation * glm::vec3(0, 0, 1); break;
+            default:      axis = glm::vec3(1, 0, 0); break;
             }
 
-            glm::vec3 planePoint = scene.getSelectedObj()->position;
+            // Step 2: pick a plane to project mouse movement onto
+            // (must not be parallel to the axis, otherwise projection is degenerate)
+            glm::vec3 planeNormal;
+            if (fabs(axis.z) > 0.5f) planeNormal = glm::vec3(0, 1, 0);
+            else                     planeNormal = glm::vec3(0, 0, 1);
+
+            glm::vec3 planePoint = obj->position;
 
             glm::vec3 currentMousePos = getMouseWorldPositionOnPlane(window, planeNormal, planePoint);
             glm::vec3 delta = currentMousePos - gizmo.initialClickPos;
 
-            // Apply delta along the active axis only
-            glm::vec3 newPos = scene.getSelectedObj()->position;
-            switch (gizmo.ActiveAxis) {
-            case Axis::X:
-                newPos.x += delta.x;
-                break;
-            case Axis::Y:
-                newPos.y += delta.y;
-                break;
-            case Axis::Z:
-                newPos.z += delta.z;
-                break;
-            }
-            scene.getSelectedObj()->position = newPos;
+            // Step 3: project mouse delta onto chosen local axis
+            float moveAmount = glm::dot(delta, glm::normalize(axis));
+            obj->position += axis * moveAmount;
 
-            gizmo.initialClickPos = currentMousePos;  // update for next delta calculation
+            // Step 4: update click pos for next frame
+            gizmo.initialClickPos = currentMousePos;
         }
 
         if (state.getActiveTool() == GizmoTool::rotate) {
+            Object* obj = scene.getSelectedObj();
+            if (!obj) return;
 
+            // Ensure object has a quaternion orientation
+            glm::quat& orientation = obj->orientation; // store this instead of raw Euler
+
+            // Step 1. Extract local axes from current orientation
+            glm::vec3 localX = orientation * glm::vec3(1, 0, 0);
+            glm::vec3 localY = orientation * glm::vec3(0, 1, 0);
+            glm::vec3 localZ = orientation * glm::vec3(0, 0, 1);
+
+            glm::vec3 axis;
+            switch (gizmo.ActiveAxis) {
+            case Axis::X: axis = glm::normalize(localX); break;
+            case Axis::Y: axis = glm::normalize(localY); break;
+            case Axis::Z: axis = glm::normalize(localZ); break;
+            default: return;
+            }
+
+            // Step 2. Intersect mouse ray with plane
+            glm::vec3 center = obj->position;
+            glm::vec3 hit = getMouseWorldPositionOnPlane(window, axis, center);
+
+            // Step 3. Compute vectors
+            glm::vec3 currentVector = glm::normalize(hit - center);
+            glm::vec3 prevVector = glm::normalize(gizmo.initialClickPos - center);
+
+            float dotProd = glm::clamp(glm::dot(prevVector, currentVector), -1.0f, 1.0f);
+            float angle = acos(dotProd);
+
+            glm::vec3 crossProd = glm::cross(prevVector, currentVector);
+            if (glm::dot(crossProd, axis) < 0.0f) {
+                angle = -angle;
+            }
+
+            // Step 4. Apply incremental quaternion rotation
+            glm::quat delta = glm::angleAxis(angle, glm::normalize(axis));
+            orientation = glm::normalize(delta * orientation);
+
+            // Step 5. Update gizmo
+            gizmo.initialClickPos = hit;
         }
     }
     // Right mouse drag handling (camera rotation)
@@ -617,7 +651,7 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
                     gizmo.initialClickPos = getMouseWorldPositionOnPlane(window, planeNormal, planePoint);
 
                     // Now start the dragging state
-                    state.setMoveTool();
+                    //state.setMoveTool();
                     gizmo.ActiveAxis = (id == GIZMO_RED_ID) ? Axis::Z :
                         (id == GIZMO_GREEN_ID) ? Axis::X : Axis::Y;
                 }

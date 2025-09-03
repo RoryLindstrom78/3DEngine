@@ -156,13 +156,15 @@ public:
     glm::vec3 position;
     glm::vec3 size;
     glm::vec3 rotation;
+    glm::quat orientation;
     bool selected;
     int ID;
 
     Object(glm::vec3 pos = glm::vec3(0.0f),
         glm::vec3 sze = glm::vec3(1.0f),
-        glm::vec3 rot = glm::vec3(0.0f))
-        : position(pos), size(sze), rotation(rot), selected(false) {
+        glm::vec3 rot = glm::vec3(0.0f),
+        glm::quat orientation = glm::quat(glm::vec3(0.0f)))
+        : position(pos), size(sze), rotation(rot), orientation(orientation), selected(false) {
 
         // draw rotation gizmo segments here
         for (int i = 0; i < segments; i++) {
@@ -191,8 +193,9 @@ public:
 
     Cube(glm::vec3 pos = glm::vec3(0.0f),
         glm::vec3 sze = glm::vec3(1.0f),
-        glm::vec3 rot = glm::vec3(0.0f))
-        : Object(pos, sze, rot) {
+        glm::vec3 rot = glm::vec3(0.0f),
+        glm::quat orientation = glm::quat(glm::vec3(0.0f)))
+        : Object(pos, sze, rot, orientation) {
         initSharedBuffers();
     }
 
@@ -202,11 +205,9 @@ public:
 
         // --- Draw filled cube ---
         glm::mat4 model = glm::mat4(1.0f);
-        model = glm::translate(model, position);
-        model = glm::scale(model, size);
-        model = glm::rotate(model, glm::radians(rotation.x), glm::vec3(1, 0, 0));
-        model = glm::rotate(model, glm::radians(rotation.y), glm::vec3(0, 1, 0));
-        model = glm::rotate(model, glm::radians(rotation.z), glm::vec3(0, 0, 1));
+        model = glm::translate(model, position) *
+        glm::mat4_cast(orientation) * // NEW
+        glm::scale(model, size);
         shader.setMat4("model", model);
         shader.setMat3("normalMatrix", glm::transpose(glm::inverse(glm::mat3(model))));
         //shader.setVec3("inColor", glm::vec3(0.9f, 0.3f, 0.3f));
@@ -276,11 +277,9 @@ public:
 
         // --- Draw filled cube ---
         glm::mat4 model = glm::mat4(1.0f);
-        model = glm::translate(model, position);
-        model = glm::scale(model, size);
-        model = glm::rotate(model, glm::radians(rotation.x), glm::vec3(1, 0, 0));
-        model = glm::rotate(model, glm::radians(rotation.y), glm::vec3(0, 1, 0));
-        model = glm::rotate(model, glm::radians(rotation.z), glm::vec3(0, 0, 1));
+        model = glm::translate(model, position) *
+        glm::mat4_cast(orientation) * // NEW
+        glm::scale(model, size);
         shader.setMat4("model", model);
         shader.setVec3("pickingColor", color);
 
@@ -311,6 +310,24 @@ public:
                 glDrawArrays(GL_LINES, 8, 4);
 
                 glBindVertexArray(0);
+            }
+
+            if (state.getActiveTool() == GizmoTool::rotate) {
+                glLineWidth(7.5f);
+
+                glBindVertexArray(rotVAO);
+                shader.setVec3("pickingColor", glm::vec3(1.0f, 0.0f, 0.0f));
+                glDrawArrays(GL_LINE_LOOP, 0, segments);
+
+                glm::mat4 modelXZ = model * glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(1, 0, 0));
+                shader.setMat4("model", modelXZ);
+                shader.setVec3("pickingColor", glm::vec3(0.0f, 0.0, 1.0f));
+                glDrawArrays(GL_LINE_LOOP, 0, segments);
+
+                glm::mat4 modelYZ = model * glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(0, 1, 0));
+                shader.setMat4("model", modelYZ);
+                shader.setVec3("pickingColor", glm::vec3(0.0f, 1.0f, 0.0f));
+                glDrawArrays(GL_LINE_LOOP, 0, segments);
             }
         }
     }
