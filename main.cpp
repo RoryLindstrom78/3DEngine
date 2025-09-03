@@ -436,8 +436,8 @@ int main() {
         ImGui::End();
 
 
-        ourShader.setFloat("metallic", 0.5f);
-        ourShader.setFloat("roughness", 0.5f);
+        ourShader.setFloat("metallic", 0.9f);
+        ourShader.setFloat("roughness", 0.1f);
         scene.draw(ourShader, state);
         
         // render skybox (render as last to prevent overdraw)
@@ -590,6 +590,7 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 {
     ImGuiIO& io = ImGui::GetIO();
 
+    // Handles initial left click
     if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS && !io.WantCaptureMouse) {
         // Get cursor position
         double mouseX, mouseY;
