@@ -434,6 +434,10 @@ int main() {
         if (ImGui::Button("Cube")) {
             scene.addObj(new Cube());
         }
+        if (ImGui::Button("Sphere")) {
+            scene.addObj(new Sphere());
+        }
+
         ImGui::End();
 
 
