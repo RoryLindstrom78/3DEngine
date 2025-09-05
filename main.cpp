@@ -164,7 +164,7 @@ int main() {
     ourShader.setInt("irradianceMap", 0);
     ourShader.setInt("prefilterMap", 1);
     ourShader.setInt("brdfLUT", 2);
-    ourShader.setVec3("albedo", 0.9f, 0.001f, 0.0f);
+    //ourShader.setVec3("albedo", 0.9f, 0.001f, 0.0f);
     ourShader.setFloat("ao", 1.0f);
 
     backgroundShader.use();

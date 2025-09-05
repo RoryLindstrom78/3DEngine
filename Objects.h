@@ -163,15 +163,18 @@ public:
     glm::quat orientation;
     float metallic;
     float roughness;
+    glm::vec3 color;
     bool selected;
+
     int ID;
 
     Object(glm::vec3 pos = glm::vec3(0.0f),
         glm::vec3 sze = glm::vec3(1.0f),
         glm::vec3 rot = glm::vec3(0.0f),
         glm::quat orientation = glm::quat(glm::vec3(0.0f)),
-        float metallic = 0.5, float roughness = 0.5)
-        : position(pos), size(sze), rotation(rot), orientation(orientation), metallic(metallic), roughness(roughness), selected(false) {
+        float metallic = 0.5, float roughness = 0.5,
+        glm::vec3 color = glm::vec3(0.5, 0.5, 0.5))
+        : position(pos), size(sze), rotation(rot), orientation(orientation), metallic(metallic), roughness(roughness), color(color), selected(false) {
 
         // draw rotation gizmo segments here
         for (int i = 0; i < segments; i++) {
@@ -202,8 +205,9 @@ public:
         glm::vec3 sze = glm::vec3(1.0f),
         glm::vec3 rot = glm::vec3(0.0f),
         glm::quat orientation = glm::quat(glm::vec3(0.0f)),
-        float metallic = 0.5, float roughness = 0.5)
-        : Object(pos, sze, rot, orientation, metallic, roughness) {
+        float metallic = 0.5, float roughness = 0.5,
+        glm::vec3 color = glm::vec3(0.5, 0.5, 0.5))
+        : Object(pos, sze, rot, orientation, metallic, roughness, color) {
         initSharedBuffers();
     }
 
@@ -213,6 +217,7 @@ public:
 
         shader.setFloat("metallic", metallic);
         shader.setFloat("roughness", roughness);
+        shader.setVec3("albedo", color);
 
         // --- Draw filled cube ---
         glm::mat4 model = glm::mat4(1.0f);
@@ -445,8 +450,9 @@ public:
         glm::vec3 sze = glm::vec3(1.0f),
         glm::vec3 rot = glm::vec3(0.0f),
         glm::quat orientation = glm::quat(glm::vec3(0.0f)),
-        float metallic = 0.5, float roughness = 0.5)
-        : Object(pos, sze, rot, orientation, metallic, roughness) {
+        float metallic = 0.5, float roughness = 0.5,
+        glm::vec3 color = glm::vec3(0.5, 0.5, 0.5))
+        : Object(pos, sze, rot, orientation, metallic, roughness, color) {
         initSharedBuffers();
     }
 
@@ -456,6 +462,7 @@ public:
         shader.setBool("usePBR", true);
         shader.setFloat("metallic", metallic);
         shader.setFloat("roughness", roughness);
+        shader.setVec3("albedo", color);
 
         // Draw sphere
         glm::mat4 model = glm::mat4(1.0f);

@@ -41,6 +41,7 @@ private:
         ImGui::Begin("Material Properties");
         ImGui::SliderFloat("Metallic", &obj->metallic, 0.0f, 1.0f);
         ImGui::SliderFloat("Roughness", &obj->roughness, 0.05f, 1.0f);
+        ImGui::ColorEdit3("Color", (float*)&obj->color); // or ColorPicker3
         ImGui::End();
     }
 };
