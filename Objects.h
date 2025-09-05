@@ -161,14 +161,17 @@ public:
     glm::vec3 size;
     glm::vec3 rotation;
     glm::quat orientation;
+    float metallic;
+    float roughness;
     bool selected;
     int ID;
 
     Object(glm::vec3 pos = glm::vec3(0.0f),
         glm::vec3 sze = glm::vec3(1.0f),
         glm::vec3 rot = glm::vec3(0.0f),
-        glm::quat orientation = glm::quat(glm::vec3(0.0f)))
-        : position(pos), size(sze), rotation(rot), orientation(orientation), selected(false) {
+        glm::quat orientation = glm::quat(glm::vec3(0.0f)),
+        float metallic = 0.5, float roughness = 0.5)
+        : position(pos), size(sze), rotation(rot), orientation(orientation), metallic(metallic), roughness(roughness), selected(false) {
 
         // draw rotation gizmo segments here
         for (int i = 0; i < segments; i++) {
@@ -198,14 +201,18 @@ public:
     Cube(glm::vec3 pos = glm::vec3(0.0f),
         glm::vec3 sze = glm::vec3(1.0f),
         glm::vec3 rot = glm::vec3(0.0f),
-        glm::quat orientation = glm::quat(glm::vec3(0.0f)))
-        : Object(pos, sze, rot, orientation) {
+        glm::quat orientation = glm::quat(glm::vec3(0.0f)),
+        float metallic = 0.5, float roughness = 0.5)
+        : Object(pos, sze, rot, orientation, metallic, roughness) {
         initSharedBuffers();
     }
 
     void draw(Shader& shader, StateManager& state) const {
         shader.use();
         shader.setBool("usePBR", true);
+
+        shader.setFloat("metallic", metallic);
+        shader.setFloat("roughness", roughness);
 
         // --- Draw filled cube ---
         glm::mat4 model = glm::mat4(1.0f);
@@ -437,16 +444,18 @@ public:
     Sphere(glm::vec3 pos = glm::vec3(0.0f),
         glm::vec3 sze = glm::vec3(1.0f),
         glm::vec3 rot = glm::vec3(0.0f),
-        glm::quat orientation = glm::quat(glm::vec3(0.0f)))
-        : Object(pos, sze, rot, orientation) {
+        glm::quat orientation = glm::quat(glm::vec3(0.0f)),
+        float metallic = 0.5, float roughness = 0.5)
+        : Object(pos, sze, rot, orientation, metallic, roughness) {
         initSharedBuffers();
     }
 
     void draw(Shader& shader, StateManager& state) const {
-        std::cout << "draw" << std::endl;
 
         shader.use();
         shader.setBool("usePBR", true);
+        shader.setFloat("metallic", metallic);
+        shader.setFloat("roughness", roughness);
 
         // Draw sphere
         glm::mat4 model = glm::mat4(1.0f);
@@ -608,6 +617,8 @@ private:
     static void initSharedBuffers() {
         if (initialized) return;
 
+        glGenVertexArrays(1, &sharedVAO);
+
         glGenBuffers(1, &sharedVBO);
         glGenBuffers(1, &sharedEBO);
 
@@ -618,15 +629,16 @@ private:
         const unsigned int X_SEGMENTS = 64;
         const unsigned int Y_SEGMENTS = 64;
         const float PI = 3.14159265359f;
+        const float RADIUS = 0.70;
         for (unsigned int x = 0; x <= X_SEGMENTS; ++x)
         {
             for (unsigned int y = 0; y <= Y_SEGMENTS; ++y)
             {
                 float xSegment = (float)x / (float)X_SEGMENTS;
                 float ySegment = (float)y / (float)Y_SEGMENTS;
-                float xPos = std::cos(xSegment * 2.0f * PI) * std::sin(ySegment * PI);
-                float yPos = std::cos(ySegment * PI);
-                float zPos = std::sin(xSegment * 2.0f * PI) * std::sin(ySegment * PI);
+                float xPos = RADIUS * std::cos(xSegment * 2.0f * PI) * std::sin(ySegment * PI);
+                float yPos = RADIUS * std::cos(ySegment * PI);
+                float zPos = RADIUS * std::sin(xSegment * 2.0f * PI) * std::sin(ySegment * PI);
 
                 positions.push_back(glm::vec3(xPos, yPos, zPos));
                 uv.push_back(glm::vec2(xSegment, ySegment));

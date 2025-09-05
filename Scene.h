@@ -31,6 +31,10 @@ public:
 		selectedObject = obj;
 	}
 
+	void unselectObject() {
+		selectedObject = nullptr;
+	}
+
 	void selectObjectFromRay(const glm::vec3 &rayOrigin, const glm::vec3 &rayDir) {
 		
 		// if an object is already selected we want to first check if we're clicking the object's move arrows

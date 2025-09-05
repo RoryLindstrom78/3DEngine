@@ -21,6 +21,7 @@
 #include <vector>
 #include "Objects.h"
 #include "stateManager.h"
+#include "UIManager.h"
 
 #include "constants.h"
 #include "skybox.h"
@@ -47,6 +48,9 @@ ColorPicker* colorPickPoint;
 
 // State Manager
 StateManager state = StateManager();
+
+// UI Manager
+UIManager UI = UIManager(&scene);
 
 // camera
 float lastX = SCR_WIDTH / 2.0f;
@@ -427,22 +431,12 @@ int main() {
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
-        // Draw your ImGui GUI
-        ImGui::SetNextWindowSize(ImVec2(200, 200)); // width = 400, height = 300
-        ImGui::Begin("My Window");
-        ImGui::Text("Hello from ImGui!");
-        if (ImGui::Button("Cube")) {
-            scene.addObj(new Cube());
-        }
-        if (ImGui::Button("Sphere")) {
-            scene.addObj(new Sphere());
-        }
-
-        ImGui::End();
+        
+        UI.draw();
 
 
-        ourShader.setFloat("metallic", 0.9f);
-        ourShader.setFloat("roughness", 0.1f);
+        //ourShader.setFloat("metallic", 0.9f);
+        //ourShader.setFloat("roughness", 0.1f);
         scene.draw(ourShader, state);
         
         // render skybox (render as last to prevent overdraw)
@@ -673,11 +667,13 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
         else {
             if (scene.getSelectedObj()) {
                 scene.getSelectedObj()->offSelected();
+                scene.unselectObject();
             }
         }
     }
     else if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE && !io.WantCaptureMouse) {
         gizmo.ActiveAxis = Axis::None;
+        //scene.unselectObject();
     }
 }
 
