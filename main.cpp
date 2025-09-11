@@ -395,13 +395,15 @@ int main() {
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
 
+        // Get framebuffer size every frame
+        glfwGetFramebufferSize(window, &scrWidth, &scrHeight);
 
         // input
         // -----
         processInput(window, scene, colorPicker, gizmo);
 
         // Render picking pass
-        colorPicker.renderPickingPass();
+        colorPicker.renderPickingPass(scrWidth, scrHeight);
 
 
         // render
@@ -410,6 +412,22 @@ int main() {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // activate shader
+        ourShader.use();
+
+        // Set projection for use of keeping window the same size
+        glViewport(0, 0, scrWidth, scrHeight);
+
+        glm::mat4 projection = glm::perspective(
+            glm::radians(camera.Zoom),
+            (float)scrWidth / (float)scrHeight,   // use real-time ratio
+            0.1f, 100.0f
+        );
+
+        ourShader.use(); 
+        ourShader.setMat4("projection", projection);  
+        backgroundShader.use();  
+        backgroundShader.setMat4("projection", projection); 
+
         ourShader.use();
 
         // camera/view transformation

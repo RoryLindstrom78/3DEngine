@@ -22,15 +22,24 @@ public:
 		initSharedBuffers();
 	}
 
-	void renderPickingPass() {
+	void renderPickingPass(int scrWidth, int scrHeight) {
 		glBindFramebuffer(GL_FRAMEBUFFER, pickingFBO);
-		glViewport(0, 0, width, height);
+
+		// update Textures
+		glBindTexture(GL_TEXTURE_2D, pickingTexture);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, scrWidth, scrHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
+
+		glBindRenderbuffer(GL_RENDERBUFFER, pickingDepth);
+		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, scrWidth, scrHeight);
+
+		// Set viewport
+		glViewport(0, 0, scrWidth, scrHeight);
 		glClearColor(0, 0, 0, 1);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		shader.use();
 
-		glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)width / (float)height, 0.1f, 100.0f);
+		glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)scrWidth / (float)scrHeight, 0.1f, 100.0f);
 		glm::mat4 view = camera.GetViewMatrix();
 		shader.setMat4("projection", projection);
 		shader.setMat4("view", view);

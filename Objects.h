@@ -636,7 +636,7 @@ private:
         const unsigned int X_SEGMENTS = 64;
         const unsigned int Y_SEGMENTS = 64;
         const float PI = 3.14159265359f;
-        const float RADIUS = 0.70;
+        const float RADIUS = 1.0;
         for (unsigned int x = 0; x <= X_SEGMENTS; ++x)
         {
             for (unsigned int y = 0; y <= Y_SEGMENTS; ++y)
