@@ -513,6 +513,12 @@ void processInput(GLFWwindow* window, Scene& scene, ColorPicker& colorPicker, Gi
     if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS) {
         state.setRotateTool();
     }
+    if (glfwGetKey(window, GLFW_KEY_BACKSPACE) == GLFW_PRESS) {
+        if (scene.getSelectedObj() != nullptr) {
+            scene.deleteSelectedObject();
+            scene.unselectObject();
+        }
+    }
 }
 
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes
@@ -676,12 +682,14 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
                 }
             }
             else {
-                int index = id - 1;
-                Object* obj = scene.getObjs()[index];
-                if (!obj->isSelected()) {
-                    if (scene.getSelectedObj() != nullptr) scene.getSelectedObj()->offSelected();
-                    obj->onSelected();
-                    scene.selectObject(obj);
+                Object* obj = scene.findObject(id);
+
+                if (obj) {
+                    if (!obj->isSelected()) {
+                        if (scene.getSelectedObj() != nullptr) scene.getSelectedObj()->offSelected();
+                        obj->onSelected();
+                        scene.selectObject(obj);
+                    }
                 }
             }
         }

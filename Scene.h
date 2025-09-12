@@ -27,6 +27,14 @@ public:
 		}
 	}
 
+	Object* findObject(int ID) {
+		for (Object* obj : objs) {
+			if (obj->ID == ID) return obj;
+		}
+
+		return nullptr;
+	}
+
 	void selectObject(Object* obj) {
 		selectedObject = obj;
 	}
@@ -71,5 +79,15 @@ public:
 
 	void selectLineFromRay(const glm::vec3& rayOrigin, const glm::vec3& rayDir) {
 		std::cout << "code this here" << std::endl;
+	}
+
+	void deleteSelectedObject() {
+		Object* ptr = getSelectedObj();
+
+		auto it = std::find(objs.begin(), objs.end(), ptr);
+		if (it != objs.end()) {
+			delete* it;
+			objs.erase(it);
+		}
 	}
 };
