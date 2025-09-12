@@ -11,6 +11,7 @@
 #include <math.h>
 
 #include "shader.h"
+#include "constants.h"
 #include "stateManager.h"
 
 // Ray intersection function
@@ -60,7 +61,7 @@ bool rayIntersectsAABB(const glm::vec3& rayOrigin, const glm::vec3& rayDir, cons
     return true;
 }
 
-// normal vectors
+// normal vectors for cube
 static float cubeNormals[] = {
     // front normal (z = +0.5)
     0.0f, 0.0f,  0.5f,  0.0f, 0.0f,  1.0f,
@@ -76,12 +77,35 @@ static float cubeNormals[] = {
    0.0f, -0.5f, 0.0f,  0.0f, -1.0f, 0.0f
 };
 
+static float sphereNormals[] = {
+    // front normal (z = +1.0)
+    0.0f, 0.0f,  1.0f,  0.0f, 0.0f,  2.0f,
+    // back normal (z = -1.0)
+    0.0f, 0.0f, -1.0f,  0.0f, 0.0f, -2.0f,
+    // right normal (x = +1.0)
+    1.0f, 0.0f,  0.0f,  2.0f, 0.0f,  0.0f,
+    // left normal (x = -1.0)
+   -1.0f, 0.0f,  0.0f, -2.0f, 0.0f,  0.0f,
+   // top normal (y = +0.5)
+    0.0f, 1.0f,  0.0f,  0.0f, 2.0f,  0.0f,
+   // bottom normal (y = -0.5)
+    0.0f, -1.0f, 0.0f,  0.0f, -2.0f, 0.0f
+};
+
 // rotation gizmo calculations
-const int segments = 64;
-const float radius = 0.75f;
+const int cubeSegments = 64;
+const float cubeRadius = 1.0f;
 
 // Segments to draw circle for rotation gizmo
-std::vector<float> rotationVertices;
+std::vector<float> rotationVerticesCube;
+
+std::vector<float> rotationVerticesSphere;
+
+// Segments to draw circle for selection tool
+const int sphereSegments = 64;
+const float sphereRadius = 1.25f;
+
+std::vector<glm::vec3> circleVertices;
 
 // Cube vertex data
 float cubeVertices[] = {
@@ -176,15 +200,7 @@ public:
         glm::vec3 color = glm::vec3(0.5, 0.5, 0.5))
         : position(pos), size(sze), rotation(rot), orientation(orientation), metallic(metallic), roughness(roughness), color(color), selected(false) {
 
-        // draw rotation gizmo segments here
-        for (int i = 0; i < segments; i++) {
-            float theta = 2.0f * M_PI * float(i) / float(segments);
-            float x = radius * cos(theta);
-            float y = radius * sin(theta);
-            rotationVertices.push_back(x);
-            rotationVertices.push_back(y);
-            rotationVertices.push_back(0.0f); // z=0, so it's in XY plane
-        }
+
 
     }
 
@@ -208,6 +224,17 @@ public:
         float metallic = 0.5, float roughness = 0.5,
         glm::vec3 color = glm::vec3(0.5, 0.5, 0.5))
         : Object(pos, sze, rot, orientation, metallic, roughness, color) {
+
+        // draw rotation gizmo segments here
+        for (int i = 0; i < cubeSegments; i++) {
+            float theta = 2.0f * M_PI * float(i) / float(cubeSegments);
+            float x = cubeRadius * cos(theta);
+            float y = cubeRadius * sin(theta);
+            rotationVerticesCube.push_back(x);
+            rotationVerticesCube.push_back(y);
+            rotationVerticesCube.push_back(0.0f); // z=0, so it's in XY plane
+        }
+
         initSharedBuffers();
     }
 
@@ -267,21 +294,22 @@ public:
             }
 
             if (state.getActiveTool() == GizmoTool::rotate) {
+
                 glLineWidth(7.5f);
 
                 glBindVertexArray(rotVAO);
                 shader.setVec3("inColor", glm::vec3(1.0f, 0.0f, 0.0f));
-                glDrawArrays(GL_LINE_LOOP, 0, segments);
+                glDrawArrays(GL_LINE_LOOP, 0, cubeSegments);
 
                 glm::mat4 modelXZ = model * glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(1, 0, 0));
                 shader.setMat4("model", modelXZ);
                 shader.setVec3("inColor", glm::vec3(0.0f, 0.0, 1.0f));
-                glDrawArrays(GL_LINE_LOOP, 0, segments);
+                glDrawArrays(GL_LINE_LOOP, 0, cubeSegments);
 
                 glm::mat4 modelYZ = model * glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(0, 1, 0));
                 shader.setMat4("model", modelYZ);
                 shader.setVec3("inColor", glm::vec3(0.0f, 1.0f, 0.0f));
-                glDrawArrays(GL_LINE_LOOP, 0, segments);
+                glDrawArrays(GL_LINE_LOOP, 0, cubeSegments);
             }
 
             glBindVertexArray(0);
@@ -333,17 +361,17 @@ public:
 
                 glBindVertexArray(rotVAO);
                 shader.setVec3("pickingColor", glm::vec3(1.0f, 0.0f, 0.0f));
-                glDrawArrays(GL_LINE_LOOP, 0, segments);
+                glDrawArrays(GL_LINE_LOOP, 0, cubeSegments);
 
                 glm::mat4 modelXZ = model * glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(1, 0, 0));
                 shader.setMat4("model", modelXZ);
                 shader.setVec3("pickingColor", glm::vec3(0.0f, 0.0, 1.0f));
-                glDrawArrays(GL_LINE_LOOP, 0, segments);
+                glDrawArrays(GL_LINE_LOOP, 0, cubeSegments);
 
                 glm::mat4 modelYZ = model * glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(0, 1, 0));
                 shader.setMat4("model", modelYZ);
                 shader.setVec3("pickingColor", glm::vec3(0.0f, 1.0f, 0.0f));
-                glDrawArrays(GL_LINE_LOOP, 0, segments);
+                glDrawArrays(GL_LINE_LOOP, 0, cubeSegments);
             }
         }
     }
@@ -431,7 +459,7 @@ private:
 
         glBindVertexArray(rotVAO);
         glBindBuffer(GL_ARRAY_BUFFER, rotVBO);
-        glBufferData(GL_ARRAY_BUFFER, rotationVertices.size() * sizeof(float), rotationVertices.data(), GL_STATIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, rotationVerticesCube.size() * sizeof(float), rotationVerticesCube.data(), GL_STATIC_DRAW);
 
         // position attribute
         glEnableVertexAttribArray(0);
@@ -453,6 +481,24 @@ public:
         float metallic = 0.5, float roughness = 0.5,
         glm::vec3 color = glm::vec3(0.5, 0.5, 0.5))
         : Object(pos, sze, rot, orientation, metallic, roughness, color) {
+
+        // Draw circle vertices for selection tool here
+
+        // draw rotation gizmo segments here
+        for (int i = 0; i < sphereSegments; i++) {
+            float theta = 2.0f * M_PI * float(i) / float(sphereSegments);
+            float x = sphereRadius * cos(theta);
+            float y = sphereRadius * sin(theta);
+            rotationVerticesSphere.push_back(x);
+            rotationVerticesSphere.push_back(y);
+            rotationVerticesSphere.push_back(0.0f); // z=0, so it's in XY plane
+        }
+
+        for (int i = 0; i < sphereSegments; ++i) {
+            float theta = 2.0f * glm::pi<float>() * float(i) / float(sphereSegments);
+            circleVertices.push_back(glm::vec3(cos(theta) * 1.05f, sin(theta) * 1.05f, 0.0f));
+        }
+
         initSharedBuffers();
     }
 
@@ -488,8 +534,25 @@ public:
 
             glLineWidth(4.0f);
 
+
+            // Billboard rotation matrix from the camera
+            glm::vec3 toCamera = glm::normalize(camera.Position - position);
+            glm::vec3 up = camera.Up; // usually (0,1,0)
+            glm::vec3 right = glm::normalize(glm::cross(up, toCamera));
+            up = glm::cross(toCamera, right);
+
+            glm::mat4 billboard = glm::mat4(1.0f);
+            billboard[0] = glm::vec4(right, 0.0f);
+            billboard[1] = glm::vec4(up, 0.0f);
+            billboard[2] = glm::vec4(toCamera, 0.0f);
+            billboard[3] = glm::vec4(position, 1.0f);
+
+            glm::mat4 billboardModel = billboard * glm::scale(glm::mat4(1.0f), glm::vec3(size.x * 1.01f));
+            shader.setMat4("model", billboardModel);
+
+
             glBindVertexArray(edgeVAO);
-            glDrawArrays(GL_LINES, 0, 24);
+            glDrawArrays(GL_LINE_LOOP, 0, sphereSegments);
             glBindVertexArray(0);
 
             if (state.getActiveTool() == GizmoTool::move) {
@@ -516,17 +579,17 @@ public:
 
                 glBindVertexArray(rotVAO);
                 shader.setVec3("inColor", glm::vec3(1.0f, 0.0f, 0.0f));
-                glDrawArrays(GL_LINE_LOOP, 0, segments);
+                glDrawArrays(GL_LINE_LOOP, 0, sphereSegments);
 
                 glm::mat4 modelXZ = model * glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(1, 0, 0));
                 shader.setMat4("model", modelXZ);
                 shader.setVec3("inColor", glm::vec3(0.0f, 0.0, 1.0f));
-                glDrawArrays(GL_LINE_LOOP, 0, segments);
+                glDrawArrays(GL_LINE_LOOP, 0, sphereSegments);
 
                 glm::mat4 modelYZ = model * glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(0, 1, 0));
                 shader.setMat4("model", modelYZ);
                 shader.setVec3("inColor", glm::vec3(0.0f, 1.0f, 0.0f));
-                glDrawArrays(GL_LINE_LOOP, 0, segments);
+                glDrawArrays(GL_LINE_LOOP, 0, sphereSegments);
             }
 
             glBindVertexArray(0);
@@ -579,17 +642,17 @@ public:
 
                 glBindVertexArray(rotVAO);
                 shader.setVec3("pickingColor", glm::vec3(1.0f, 0.0f, 0.0f));
-                glDrawArrays(GL_LINE_LOOP, 0, segments);
+                glDrawArrays(GL_LINE_LOOP, 0, sphereSegments);
 
                 glm::mat4 modelXZ = model * glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(1, 0, 0));
                 shader.setMat4("model", modelXZ);
                 shader.setVec3("pickingColor", glm::vec3(0.0f, 0.0, 1.0f));
-                glDrawArrays(GL_LINE_LOOP, 0, segments);
+                glDrawArrays(GL_LINE_LOOP, 0, sphereSegments);
 
                 glm::mat4 modelYZ = model * glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(0, 1, 0));
                 shader.setMat4("model", modelYZ);
                 shader.setVec3("pickingColor", glm::vec3(0.0f, 1.0f, 0.0f));
-                glDrawArrays(GL_LINE_LOOP, 0, segments);
+                glDrawArrays(GL_LINE_LOOP, 0, sphereSegments);
             }
         }
     }
@@ -714,11 +777,13 @@ private:
 
         glBindVertexArray(edgeVAO);
         glBindBuffer(GL_ARRAY_BUFFER, edgeVBO);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(cubeEdges), cubeEdges, GL_STATIC_DRAW);
-
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+        glBufferData(GL_ARRAY_BUFFER, circleVertices.size() * sizeof(glm::vec3), circleVertices.data(), GL_STATIC_DRAW);
+        
+        // vertex layout: position only
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
         glEnableVertexAttribArray(0);
 
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
         glBindVertexArray(0);
 
         // Normal VAO and VBO
@@ -727,7 +792,7 @@ private:
 
         glBindVertexArray(normalVAO);
         glBindBuffer(GL_ARRAY_BUFFER, normalVBO);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(cubeNormals), cubeNormals, GL_STATIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(sphereNormals), sphereNormals, GL_STATIC_DRAW);
 
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
         glEnableVertexAttribArray(0);
@@ -740,7 +805,7 @@ private:
 
         glBindVertexArray(rotVAO);
         glBindBuffer(GL_ARRAY_BUFFER, rotVBO);
-        glBufferData(GL_ARRAY_BUFFER, rotationVertices.size() * sizeof(float), rotationVertices.data(), GL_STATIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, rotationVerticesSphere.size() * sizeof(float), rotationVerticesSphere.data(), GL_STATIC_DRAW);
 
         // position attribute
         glEnableVertexAttribArray(0);

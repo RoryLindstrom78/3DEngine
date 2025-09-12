@@ -131,6 +131,9 @@ int main() {
     // -----------------------------
     glEnable(GL_DEPTH_TEST);
 
+    // Setup MSAA
+    glEnable(GL_MULTISAMPLE);
+
     // setup ImGUI
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
