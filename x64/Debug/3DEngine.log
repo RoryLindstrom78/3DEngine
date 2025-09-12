@@ -1,8 +1,17 @@
-﻿  main.cpp
+﻿  imgui.cpp
+  imgui_demo.cpp
+  imgui_draw.cpp
+  imgui_impl_glfw.cpp
+  imgui_impl_opengl3.cpp
+  imgui_tables.cpp
+  imgui_widgets.cpp
+  main.cpp
 C:\Users\HACKSHIT\source\repos\3DEngine\3DEngine\Objects.h(230,25): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
   (compiling source file 'main.cpp')
   
 C:\Users\HACKSHIT\source\repos\3DEngine\3DEngine\Objects.h(489,25): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
   (compiling source file 'main.cpp')
   
+  stb_image.cpp
+  Generating Code...
   3DEngine.vcxproj -> C:\Users\HACKSHIT\source\repos\3DEngine\x64\Debug\3DEngine.exe
